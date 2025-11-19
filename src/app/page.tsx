@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
+import CardsGrid from "@/components/CardsGrid";
 
 /* ----------------------------- Inline SVG Icons ---------------------------- */
 
@@ -61,96 +64,103 @@ function IconChat(props: React.SVGProps<SVGSVGElement>) {
 
 export default function Home() {
   return (
-    <main className="min-h-[calc(100vh-56px)]">
-      {/* Hero */}
-      <section className="relative">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(90%_70%_at_50%_-10%,#93c5fd_0%,#6ee7b7_30%,#60a5fa_60%,transparent_100%)] opacity-25" />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-          <div className="rounded-3xl bg-gradient-to-r from-sky-400 via-emerald-400 to-blue-500 p-[1px] shadow-xl">
-            <div className="rounded-3xl bg-white">
-              <div className="grid gap-8 p-8 sm:p-12 lg:grid-cols-[1.1fr_.95fr] items-center">
-                {/* Left copy */}
-                <div>
-                  <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-                    Plan. Travel. <span className="text-sky-600">Relive.</span>
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                    Discover curated trips, build day-wise itineraries, split expenses, and relive
-                    memories together — all in one place.
-                  </p>
+    <>
+      <Nav />
+      <main className="min-h-screen">
+        {/* Hero */}
+        <section className="relative">
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(90%_70%_at_50%_-10%,#93c5fd_0%,#6ee7b7_30%,#60a5fa_60%,transparent_100%)] opacity-25" />
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+            <div className="rounded-3xl bg-gradient-to-r from-sky-400 via-emerald-400 to-blue-500 p-[1px] shadow-xl">
+              <div className="rounded-3xl bg-white">
+                <div className="grid gap-8 p-8 sm:p-12 lg:grid-cols-[1.1fr_.95fr] items-center">
+                  {/* Left copy */}
+                  <div>
+                    <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                      Plan. Travel. <span className="text-sky-600">Relive.</span>
+                    </h1>
+                    <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+                      Discover curated trips, build day-wise itineraries, split expenses, and relive
+                      memories together — all in one place.
+                    </p>
 
-                  <div className="mt-7 flex flex-wrap gap-3">
-                    <Link
-                      href="/organizer/new"
-                      className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800"
-                    >
-                      Start as Organizer
-                    </Link>
-                    <Link
-                      href="/explore"
-                      className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-                    >
-                      Explore Trips
-                    </Link>
-                    <Link
-                      href="/join"
-                      className="inline-flex items-center rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700"
-                    >
-                      Join with TripCode
-                    </Link>
+                    <div className="mt-7 flex flex-wrap gap-3">
+                      <Link
+                        href="/organizer/new"
+                        className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800"
+                      >
+                        Start as Organizer
+                      </Link>
+                      <Link
+                        href="/explore"
+                        className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                      >
+                        Explore Trips
+                      </Link>
+                      <Link
+                        href="/join"
+                        className="inline-flex items-center rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700"
+                      >
+                        Join with TripCode
+                      </Link>
+                    </div>
                   </div>
-                </div>
 
-                {/* Right visual: clean mock “app preview” */}
-                <div className="relative hidden lg:block">
-                  <div className="absolute -inset-6 -z-10 rounded-3xl bg-gradient-to-tr from-sky-300 via-indigo-200 to-emerald-200 blur-2xl opacity-70" />
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
-                    {/* Header bar */}
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="h-3 w-24 rounded bg-slate-200" />
-                      <div className="flex gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                  {/* Right visual: clean mock "app preview" */}
+                  <div className="relative hidden lg:block">
+                    <div className="absolute -inset-6 -z-10 rounded-3xl bg-gradient-to-tr from-sky-300 via-indigo-200 to-emerald-200 blur-2xl opacity-70" />
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+                      {/* Header bar */}
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="h-3 w-24 rounded bg-slate-200" />
+                        <div className="flex gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                          <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                          <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                        </div>
+                      </div>
+                      {/* Fake cards grid */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <PreviewTile title="Itinerary" Icon={IconCompass} />
+                        <PreviewTile title="Expenses" Icon={IconWallet} />
+                        <PreviewTile title="Memories" Icon={IconCamera} />
+                        <PreviewTile title="Chat" Icon={IconChat} />
                       </div>
                     </div>
-                    {/* Fake cards grid */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <PreviewTile title="Itinerary" Icon={IconCompass} />
-                      <PreviewTile title="Expenses" Icon={IconWallet} />
-                      <PreviewTile title="Memories" Icon={IconCamera} />
-                      <PreviewTile title="Chat" Icon={IconChat} />
-                    </div>
                   </div>
+                  {/* /Right visual */}
                 </div>
-                {/* /Right visual */}
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <FeatureCard
-            icon={<IconCompass className="h-6 w-6 text-sky-600" />}
-            title="Dynamic Planner"
-            text="Drag-and-drop day cards, live map, and comments per item."
-          />
-          <FeatureCard
-            icon={<IconWallet className="h-6 w-6 text-emerald-600" />}
-            title="Collaborative Expenses"
-            text="Log shared costs and see balances with one-click “Settle Up”."
-          />
-          <FeatureCard
-            icon={<IconCamera className="h-6 w-6 text-indigo-600" />}
-            title="Memory Wall"
-            text="Upload photos & videos and highlight top moments from the trip."
-          />
-        </div>
-      </section>
-    </main>
+        {/* Features */}
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <FeatureCard
+              icon={<IconCompass className="h-6 w-6 text-sky-600" />}
+              title="Dynamic Planner"
+              text="Drag-and-drop day cards, live map, and comments per item."
+            />
+            <FeatureCard
+              icon={<IconWallet className="h-6 w-6 text-emerald-600" />}
+              title="Collaborative Expenses"
+              text="Log shared costs and see balances with one-click 'Settle Up'."
+            />
+            <FeatureCard
+              icon={<IconCamera className="h-6 w-6 text-indigo-600" />}
+              title="Memory Wall"
+              text="Upload photos & videos and highlight top moments from the trip."
+            />
+          </div>
+        </section>
+
+        {/* Cards Grid */}
+        <CardsGrid />
+      </main>
+      <Footer />
+    </>
   );
 }
 

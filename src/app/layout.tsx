@@ -2,13 +2,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Navbar from "../lib/Navbar";
 import ClientProviders from "../lib/ClientProviders";
-import { Inter } from "next/font/google";
-
-// Load Inter font from Google
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-});
 
 // Page metadata for SEO and sharing
 export const metadata: Metadata = {
@@ -33,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.className} bg-slate-50 text-slate-900 min-h-screen`}>
+      <body className="bg-slate-50 text-slate-900 min-h-screen">
         <ClientProviders>
           <Navbar />
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
