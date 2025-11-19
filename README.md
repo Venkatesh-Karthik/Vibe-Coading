@@ -69,7 +69,7 @@ A modern, responsive Next.js application for planning trips, managing expenses, 
 
 This project uses pinned dependency versions for reproducibility:
 
-- **next**: 14.0.0
+- **next**: 14.2.25 (latest patched 14.x version addressing security vulnerabilities)
 - **react**: 18.2.0
 - **react-dom**: 18.2.0
 - **firebase**: 10.14.1
