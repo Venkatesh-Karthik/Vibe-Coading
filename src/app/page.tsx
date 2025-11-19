@@ -2,7 +2,6 @@ import React from 'react';
 import Nav from '../components/Nav';
 import CardsGrid from '../components/CardsGrid';
 import Footer from '../components/Footer';
-import '../globals.css';
 
 export default function Home() {
   return (
