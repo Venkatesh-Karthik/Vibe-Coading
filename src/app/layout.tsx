@@ -1,9 +1,10 @@
 import "../globals.css";
 import type { Metadata } from "next";
+import ClientProviders from "@/lib/ClientProviders";
 
 export const metadata: Metadata = {
-  title: "Vibe Coading",
-  description: "Ship beautiful UI, fast — Starter templates and reusable components",
+  title: "TripMosaic+ | Plan Perfect Group Trips",
+  description: "A beautiful glassmorphism-styled group trip planner powered by Next.js, Firebase, and AI",
 };
 
 export default function RootLayout({
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
