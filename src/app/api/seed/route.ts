@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Firestore seeded successfully",
       tripIds,
-      timestamp: new Date().toISOString(),
+      timestamp: admin.firestore.Timestamp.now().toDate().toISOString(),
     });
   } catch (error) {
     console.error("Error seeding Firestore:", error);
