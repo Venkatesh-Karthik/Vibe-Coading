@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFirestore } from "@/lib/firebase-admin";
+import * as admin from "firebase-admin";
 
 /**
  * Verify the seed secret from request headers
@@ -46,8 +47,8 @@ const SAMPLE_TRIPS = [
     description: "Explore the vibrant culture and cuisine of Tokyo",
     ownerId: "sample-user-1",
     members: ["sample-user-1"],
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   },
   {
     name: "European Road Trip",
@@ -60,8 +61,8 @@ const SAMPLE_TRIPS = [
     description: "Multi-city adventure across Europe",
     ownerId: "sample-user-2",
     members: ["sample-user-2", "sample-user-3"],
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   },
   {
     name: "Bali Retreat",
@@ -74,8 +75,8 @@ const SAMPLE_TRIPS = [
     description: "Relaxing beach getaway",
     ownerId: "sample-user-1",
     members: ["sample-user-1"],
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   },
 ];
 
@@ -129,7 +130,7 @@ const SAMPLE_EXPENSES = [
     date: "2024-03-15",
     paidBy: "sample-user-1",
     splitBetween: ["sample-user-1"],
-    createdAt: new Date(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   },
   {
     description: "Airport transfer",
@@ -139,7 +140,7 @@ const SAMPLE_EXPENSES = [
     date: "2024-03-15",
     paidBy: "sample-user-1",
     splitBetween: ["sample-user-1"],
-    createdAt: new Date(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   },
   {
     description: "Dinner at sushi restaurant",
@@ -149,7 +150,7 @@ const SAMPLE_EXPENSES = [
     date: "2024-03-15",
     paidBy: "sample-user-1",
     splitBetween: ["sample-user-1"],
-    createdAt: new Date(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   },
 ];
 
