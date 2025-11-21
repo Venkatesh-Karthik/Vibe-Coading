@@ -1,29 +1,9 @@
-import "./globals.css";
+import "../globals.css";
 import type { Metadata } from "next";
-import Navbar from "../lib/Navbar";
-import ClientProviders from "../lib/ClientProviders";
-import { Inter } from "next/font/google";
 
-// Load Inter font from Google
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-});
-
-// Page metadata for SEO and sharing
 export const metadata: Metadata = {
-  title: "TripMosaic+",
-  description: "Plan. Travel. Relive. — Curate trips, split expenses, and relive memories together.",
-  keywords: ["Travel Planner", "Trip Organizer", "Expense Splitter", "TripMosaic+"],
-  authors: [{ name: "B Venkatesh Karthik" }],
-  openGraph: {
-    title: "TripMosaic+",
-    description: "Your collaborative trip planner and memory wall.",
-    url: "http://localhost:3000",
-    siteName: "TripMosaic+",
-    locale: "en_US",
-    type: "website",
-  },
+  title: "Vibe Coading",
+  description: "Ship beautiful UI, fast — Starter templates and reusable components",
 };
 
 export default function RootLayout({
@@ -32,14 +12,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className={`${inter.className} bg-slate-50 text-slate-900 min-h-screen`}>
-        <ClientProviders>
-          <Navbar />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {children}
-          </main>
-        </ClientProviders>
+    <html lang="en">
+      <body>
+        {children}
       </body>
     </html>
   );
