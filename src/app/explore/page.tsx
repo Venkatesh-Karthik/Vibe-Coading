@@ -1,46 +1,54 @@
 "use client";
 
-import Image from "next/image";
+import { motion } from "framer-motion";
+import DestinationCard from "../../components/DestinationCard";
+import Footer from "../../components/Footer";
 
 const destinations = [
   {
     id: 1,
-    name: "Paris, France 🇫🇷",
+    name: "Paris, France",
+    code: "FR",
     image: "/images/paris.jpg",
     desc: "A romantic escape through art and architecture.",
     tags: ["Romantic", "Culture", "Luxury"],
   },
   {
     id: 2,
-    name: "Kyoto, Japan 🇯🇵",
+    name: "Kyoto, Japan",
+    code: "JP",
     image: "/images/kyoto.jpg",
     desc: "Peaceful temples and vibrant cherry blossoms.",
     tags: ["Tradition", "Nature", "Culture"],
   },
   {
     id: 3,
-    name: "Bali, Indonesia 🇮🇩",
+    name: "Bali, Indonesia",
+    code: "ID",
     image: "/images/bali.jpg",
     desc: "Tropical paradise of beaches and temples.",
     tags: ["Beach", "Adventure", "Relax"],
   },
   {
     id: 4,
-    name: "New York, USA 🇺🇸",
+    name: "New York, USA",
+    code: "US",
     image: "/images/newyork.jpg",
     desc: "The city that never sleeps.",
     tags: ["Urban", "Nightlife", "Shopping"],
   },
   {
     id: 5,
-    name: "Santorini, Greece 🇬🇷",
+    name: "Santorini, Greece",
+    code: "GR",
     image: "/images/santorini.jpg",
     desc: "Sunsets, white houses, and blue domes.",
     tags: ["Luxury", "Romantic", "Sea"],
   },
   {
     id: 6,
-    name: "Swiss Alps, Switzerland 🇨🇭",
+    name: "Swiss Alps, Switzerland",
+    code: "CH",
     image: "/images/alps.jpg",
     desc: "Snow-capped peaks and scenic trails.",
     tags: ["Adventure", "Nature", "Hiking"],
@@ -49,47 +57,62 @@ const destinations = [
 
 export default function ExplorePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-20">
-      <div className="max-w-7xl mx-auto px-6 text-center">
-        <h1 className="text-4xl font-bold mb-4">
-          Explore <span className="text-sky-600">Destinations</span>
-        </h1>
-        <p className="text-slate-600 mb-12">
-          Discover the world’s most beautiful places curated by fellow travelers.
-        </p>
+    <div className="min-h-screen flex flex-col pt-24">
+      <main className="flex-1 px-4 py-12">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
+          >
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Explore{" "}
+              <span className="gradient-text">Destinations</span>
+            </h1>
+            <p className="text-slate-600 max-w-2xl mx-auto">
+              Discover the world&apos;s most beautiful places curated by fellow travelers.
+            </p>
+          </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-          {destinations.map((dest) => (
-            <div
-              key={dest.id}
-              className="group relative bg-white/40 backdrop-blur-lg rounded-3xl shadow-md overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
-            >
-              <Image
-                src={dest.image}
-                alt={dest.name}
-                width={500}
-                height={300}
-                className="object-cover w-full h-64 transition-transform duration-700 group-hover:scale-110"
+          {/* Destination Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+            {destinations.map((dest, index) => (
+              <DestinationCard
+                key={dest.id}
+                name={dest.name}
+                code={dest.code}
+                image={dest.image}
+                desc={dest.desc}
+                tags={dest.tags}
+                delay={index * 0.1}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent opacity-90 group-hover:opacity-70 transition-opacity"></div>
-              <div className="absolute bottom-5 left-0 right-0 px-6 text-left text-white">
-                <h2 className="text-xl font-semibold mb-1">{dest.name}</h2>
-                <p className="text-sm text-slate-200 mb-3">{dest.desc}</p>
-                <div className="flex flex-wrap gap-2">
-                  {dest.tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs hover:bg-white/30 transition"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Load More CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-16 text-center"
+          >
+            <p className="text-slate-600 mb-4">
+              Can&apos;t find your dream destination?
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-secondary"
+            >
+              Request a Destination
+            </motion.button>
+          </motion.div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      <Footer />
+    </div>
   );
 }
