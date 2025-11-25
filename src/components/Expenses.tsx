@@ -19,9 +19,9 @@ type Expense = {
   title: string;
   amount: number;
   kind: "stay" | "food" | "travel" | "entry" | "other";
-  paid_by: string; // user_id
-  split_between: string[]; // user_ids
-  created_at?: any;
+  paid_by: string;
+  split_between: string[];
+  created_at?: unknown;
 };
 
 function round2(n: number) {
@@ -59,6 +59,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
   // Participants (to know who can be included in splits)
   const [members, setMembers] = useState<Participant[]>([]);
   useEffect(() => {
+    if (!db) return;
     const q = query(collection(db, "participants", tripId, "users"));
     const unsub = onSnapshot(q, (snap) => {
       setMembers(snap.docs.map((d) => d.data() as Participant));
@@ -70,6 +71,10 @@ export default function Expenses({ tripId }: { tripId: string }) {
   const [items, setItems] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    if (!db) {
+      setLoading(false);
+      return;
+    }
     const q = query(
       collection(db, "expenses", tripId, "items"),
       orderBy("created_at", "asc")
@@ -78,7 +83,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
       q,
       (snap) => {
         setItems(
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Expense[]
+          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Expense, "id">) })) as Expense[]
         );
         setLoading(false);
       },
@@ -91,7 +96,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState<number | ''>("");
   const [kind, setKind] = useState<Expense["kind"]>("food");
-  const [splitBetween, setSplitBetween] = useState<string[] | null>(null); // default = all members
+  const [splitBetween, setSplitBetween] = useState<string[] | null>(null);
 
   useEffect(() => {
     if (members.length && splitBetween === null) {
@@ -101,6 +106,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
 
   async function addExpense() {
     if (!user) return alert("Please login first.");
+    if (!db) return alert("Firebase not configured.");
     const a = Number(amount);
     if (!title || !a || !splitBetween?.length) return alert("Fill all fields.");
     await addDoc(collection(db, "expenses", tripId, "items"), {
@@ -114,7 +120,6 @@ export default function Expenses({ tripId }: { tripId: string }) {
     setTitle("");
     setAmount("");
     setKind("food");
-    // keep splitBetween as-is
   }
 
   // Totals by category (for pie chart)
@@ -135,9 +140,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
       const amt = Number(e.amount || 0);
       const split = e.split_between?.length ? e.split_between : members.map((m) => m.user_id);
       const perHead = split.length ? amt / split.length : 0;
-      // payer gets credit
       if (e.paid_by) bal[e.paid_by] = round2((bal[e.paid_by] || 0) + amt);
-      // everyone in split owes
       for (const u of split) {
         bal[u] = round2((bal[u] || 0) - perHead);
       }
@@ -150,8 +153,15 @@ export default function Expenses({ tripId }: { tripId: string }) {
   const nameOf = (uid: string) =>
     members.find((m) => m.user_id === uid)?.display_name || uid.slice(0, 6);
 
-  // simple colors (Recharts will apply defaults if not provided, but keeping 5 slots)
   const COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+  if (!db) {
+    return (
+      <section className="rounded-2xl bg-white shadow p-4">
+        <p className="text-slate-600">Firebase not configured. Please check environment variables.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl bg-white shadow p-4">

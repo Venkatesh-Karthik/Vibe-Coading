@@ -52,12 +52,16 @@ export default function TripPage() {
 
     // Load Google Maps JS
     const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
         libraries: ["places"],
     });
 
     // Firestore listeners: trip doc + itinerary items
     useEffect(() => {
+        if (!db) {
+            setLoading(false);
+            return;
+        }
         const unsubTrip = onSnapshot(doc(db, "trips", tripId), (snap) => {
             setTrip((snap.exists() ? (snap.data() as TripDoc) : null));
         });
@@ -70,7 +74,7 @@ export default function TripPage() {
             q,
             (snap) => {
                 setItems(
-                    snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Item[]
+                    snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Item, "id">) })) as Item[]
                 );
                 setLoading(false);
             },
@@ -93,6 +97,14 @@ export default function TripPage() {
     );
 
     const center = path[0] ?? { lat: 20.5937, lng: 78.9629 }; // India fallback
+
+    if (!db) {
+        return (
+            <main className="mx-auto max-w-6xl px-4 py-8">
+                <p className="text-slate-600">Firebase not configured. Please check environment variables.</p>
+            </main>
+        );
+    }
 
     return (
         <main className="mx-auto max-w-6xl px-4 py-8">
@@ -199,6 +211,7 @@ export default function TripPage() {
             {/* Cover preview + metadata */}
             {trip?.cover && (
                 <div className="mt-6 rounded-2xl overflow-hidden shadow">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={trip.cover}
                         alt="Trip cover"
