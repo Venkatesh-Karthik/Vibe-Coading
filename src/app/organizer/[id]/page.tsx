@@ -29,6 +29,7 @@ import {
   closestCenter,
   useSensor,
   useSensors,
+  DragEndEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -154,7 +155,7 @@ export default function OrganizerEditorPage() {
 
   // Drag to reorder (within the same day list)
   const sensors = useSensors(useSensor(PointerSensor));
-  async function onDragEnd(e: { active: { id: string | number }; over: { id: string | number } | null }) {
+  async function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id || !db) return;
 
