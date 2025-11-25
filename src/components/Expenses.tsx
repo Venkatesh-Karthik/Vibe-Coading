@@ -9,6 +9,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "../lib/auth-context";
@@ -21,7 +22,7 @@ type Expense = {
   kind: "stay" | "food" | "travel" | "entry" | "other";
   paid_by: string;
   split_between: string[];
-  created_at?: unknown;
+  created_at?: Timestamp | Date | null;
 };
 
 function round2(n: number) {
