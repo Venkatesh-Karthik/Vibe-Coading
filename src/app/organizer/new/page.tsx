@@ -27,6 +27,10 @@ export default function NewTripPage() {
   async function createTrip(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    if (!db) {
+      alert("Firebase not configured. Please check environment variables.");
+      return;
+    }
 
     if (!title.trim() || !destination.trim() || !startDate || !endDate) {
       alert("Please fill all required fields.");
@@ -56,11 +60,10 @@ export default function NewTripPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         analytics: { participants: 1, revenue: 0, ratings: [] as number[] },
-        // optional empty shells
-        itinerary: [], // [{day:1, items:[{place, notes, time}]}]
+        itinerary: [],
       });
 
-      router.push(`/trip/${docRef.id}`); // go to the trip page
+      router.push(`/trip/${docRef.id}`);
     } finally {
       setSaving(false);
     }

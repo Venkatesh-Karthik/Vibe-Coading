@@ -89,7 +89,7 @@ export default function OrganizerEditorPage() {
 
   // Google Maps
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
     libraries: ["places"],
   });
 
@@ -98,6 +98,10 @@ export default function OrganizerEditorPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!db) {
+      setLoading(false);
+      return;
+    }
     const q = query(
       collection(db, "trip_items", tripId, "items"),
       orderBy("day_index", "asc"),
@@ -110,7 +114,7 @@ export default function OrganizerEditorPage() {
           snap.docs.map((d, idx) => ({
             order_index: idx,
             id: d.id,
-            ...(d.data() as any),
+            ...(d.data() as Omit<Item, "id">),
           }))
         );
         setLoading(false);
@@ -126,7 +130,7 @@ export default function OrganizerEditorPage() {
   const [adding, setAdding] = useState(false);
 
   async function addPlace() {
-    if (!auto) return;
+    if (!auto || !db) return;
     const p = auto.getPlace();
     const loc = p.geometry?.location;
     if (!loc || !p.name) return;
@@ -150,13 +154,15 @@ export default function OrganizerEditorPage() {
 
   // Drag to reorder (within the same day list)
   const sensors = useSensors(useSensor(PointerSensor));
-  async function onDragEnd(e: any) {
+  async function onDragEnd(e: { active: { id: string | number }; over: { id: string | number } | null }) {
     const { active, over } = e;
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id || !db) return;
 
     // Reorder in local state
-    const oldIndex = items.findIndex((i) => i.id === active.id);
-    const newIndex = items.findIndex((i) => i.id === over.id);
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const oldIndex = items.findIndex((i) => i.id === activeId);
+    const newIndex = items.findIndex((i) => i.id === overId);
 
     const old = items[oldIndex];
     const movedSameDay = old.day_index === items[newIndex].day_index;
@@ -165,9 +171,10 @@ export default function OrganizerEditorPage() {
     setItems(newItems);
 
     // Persist order_index (only for same-day reorder)
-    if (movedSameDay) {
+    if (movedSameDay && db) {
+      const firestore = db;
       const batchUpdates = newItems.map((it, idx) =>
-        updateDoc(doc(db, "trip_items", tripId, "items", it.id), {
+        updateDoc(doc(firestore, "trip_items", tripId, "items", it.id), {
           order_index: idx,
         })
       );
@@ -177,6 +184,7 @@ export default function OrganizerEditorPage() {
 
   // Delete
   async function removeItem(id: string) {
+    if (!db) return;
     await deleteDoc(doc(db, "trip_items", tripId, "items", id));
   }
 
@@ -189,6 +197,14 @@ export default function OrganizerEditorPage() {
     [items]
   );
   const center = path[0] ?? { lat: 20.5937, lng: 78.9629 };
+
+  if (!db) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        <p className="text-slate-600">Firebase not configured. Please check environment variables.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">

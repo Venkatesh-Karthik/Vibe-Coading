@@ -25,6 +25,10 @@ export default function JoinByCodePage() {
       setMsg("Please login with Google first (top right).");
       return;
     }
+    if (!db) {
+      setMsg("Firebase not configured. Please check environment variables.");
+      return;
+    }
     const clean = code.trim().toUpperCase();
     if (clean.length < 4) {
       setMsg("Enter a valid TripCode.");
@@ -58,9 +62,10 @@ export default function JoinByCodePage() {
         },
         { merge: true }
       );
-      setMsg(`Joined “${t.data().title}”. You can open the trip now.`);
-    } catch (e: any) {
-      setMsg(e?.message || "Failed to join trip.");
+      setMsg(`Joined "${t.data().title}". You can open the trip now.`);
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      setMsg(error?.message || "Failed to join trip.");
     } finally {
       setBusy(false);
     }
@@ -96,7 +101,7 @@ export default function JoinByCodePage() {
       )}
 
       <div className="mt-6 text-sm text-slate-600">
-        Don’t have a code?{" "}
+        Don&apos;t have a code?{" "}
         <Link href="/explore" className="underline">
           Explore public trips
         </Link>
