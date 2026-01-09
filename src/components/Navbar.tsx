@@ -30,14 +30,14 @@ export default function Navbar() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-5xl px-4"
+      className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4"
     >
       {/* Main Nav Bar */}
-      <nav className="glass-panel px-6 py-3 flex items-center justify-between gap-4">
+      <nav className="glass-panel px-6 py-3 flex items-center justify-between gap-4 w-full max-w-5xl">
         {/* Brand */}
         <Link
           href="/"
-          className="group inline-flex items-center gap-2 rounded-2xl px-2 py-1 transition-transform duration-300 ease-out hover:-translate-y-[1px]"
+          className="group inline-flex items-center gap-2 rounded-2xl px-2 py-1 transition-transform duration-300 ease-out hover:-translate-y-[1px] flex-shrink-0 whitespace-nowrap"
         >
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-sky-500 to-emerald-500 rounded-full blur-md opacity-50 group-hover:opacity-70 transition-opacity" />
@@ -49,7 +49,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-2 md:flex flex-1 justify-end">
           <ul className="flex items-center gap-1 rounded-2xl border border-white/30 bg-white/20 px-1.5 py-1 backdrop-blur-xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]">
             {nav.map((item) => {
               const active = pathname?.startsWith(item.href);
@@ -148,7 +148,7 @@ export default function Navbar() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden mt-2 glass-panel overflow-hidden"
+            className="absolute top-full left-4 right-4 md:hidden mt-2 glass-panel overflow-hidden max-w-5xl mx-auto"
           >
             <div className="px-4 py-3 space-y-2">
               <div className="flex flex-col gap-1">
