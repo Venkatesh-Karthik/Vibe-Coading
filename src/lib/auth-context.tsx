@@ -34,16 +34,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Complete redirect flow if we came back from signInWithRedirect
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
-        await getRedirectResult(auth); // will set user via onAuthStateChanged
+        await getRedirectResult(auth);
       } catch (err) {
-        // ignore; we'll fall back to popup below if needed
+        console.warn("Redirect result error:", err);
       }
     })();
   }, []);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -52,18 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loginWithGoogle() {
-    if (authing) return;         // prevent concurrent popups
+    if (!auth) {
+      console.warn("Firebase auth not initialized. Check environment variables.");
+      return;
+    }
+    if (authing) return;
     setAuthing(true);
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (e: any) {
-      // Common popup problems: use redirect as safe fallback
-      const code = e?.code || "";
+    } catch (e: unknown) {
+      const error = e as { code?: string };
+      const code = error?.code || "";
       if (code === "auth/popup-blocked" || code === "auth/cancelled-popup-request") {
         await signInWithRedirect(auth, googleProvider);
       } else {
-        // Optional: surface other errors
-        console.error("Google login failed:", e);
+        console.warn("Google login failed:", e);
       }
     } finally {
       setAuthing(false);
@@ -71,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    if (!auth) return;
     await signOut(auth);
   }
 

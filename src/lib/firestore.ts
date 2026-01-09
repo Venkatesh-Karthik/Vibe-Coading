@@ -15,6 +15,7 @@ import {
   orderBy,
   Timestamp,
   arrayUnion,
+  Firestore,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -62,13 +63,22 @@ export interface Expense {
   createdAt?: Date;
 }
 
+// Helper to assert db is not null
+function getDb(): Firestore {
+  if (!db) {
+    throw new Error("Firebase not configured. Check environment variables.");
+  }
+  return db;
+}
+
 /**
  * Create a new trip
  */
 export async function createTrip(tripData: Omit<Trip, "id" | "createdAt" | "updatedAt">): Promise<string> {
   try {
+    const firestore = getDb();
     const now = Timestamp.now();
-    const tripRef = await addDoc(collection(db, "trips"), {
+    const tripRef = await addDoc(collection(firestore, "trips"), {
       ...tripData,
       createdAt: now,
       updatedAt: now,
@@ -88,7 +98,8 @@ export async function updateTripMeta(
   updates: Partial<Omit<Trip, "id" | "createdAt" | "updatedAt" | "ownerId">>
 ): Promise<void> {
   try {
-    const tripRef = doc(db, "trips", tripId);
+    const firestore = getDb();
+    const tripRef = doc(firestore, "trips", tripId);
     await updateDoc(tripRef, {
       ...updates,
       updatedAt: Timestamp.now(),
@@ -107,7 +118,8 @@ export async function addItineraryDay(
   dayData: Omit<ItineraryDay, "id">
 ): Promise<string> {
   try {
-    const itineraryRef = collection(db, "trips", tripId, "itinerary");
+    const firestore = getDb();
+    const itineraryRef = collection(firestore, "trips", tripId, "itinerary");
     const docRef = await addDoc(itineraryRef, dayData);
     return docRef.id;
   } catch (error) {
@@ -124,7 +136,8 @@ export async function addExpense(
   expenseData: Omit<Expense, "id" | "createdAt">
 ): Promise<string> {
   try {
-    const expensesRef = collection(db, "trips", tripId, "expenses");
+    const firestore = getDb();
+    const expensesRef = collection(firestore, "trips", tripId, "expenses");
     const docRef = await addDoc(expensesRef, {
       ...expenseData,
       createdAt: Timestamp.now(),
@@ -141,9 +154,10 @@ export async function addExpense(
  */
 export async function getTripsForUser(userId: string): Promise<Trip[]> {
   try {
+    const firestore = getDb();
     // Query trips where user is owner
     const ownerQuery = query(
-      collection(db, "trips"),
+      collection(firestore, "trips"),
       where("ownerId", "==", userId),
       orderBy("createdAt", "desc")
     );
@@ -151,7 +165,7 @@ export async function getTripsForUser(userId: string): Promise<Trip[]> {
     
     // Query trips where user is a member
     const memberQuery = query(
-      collection(db, "trips"),
+      collection(firestore, "trips"),
       where("members", "array-contains", userId),
       orderBy("createdAt", "desc")
     );
@@ -160,18 +174,18 @@ export async function getTripsForUser(userId: string): Promise<Trip[]> {
     // Combine results and remove duplicates
     const tripsMap = new Map<string, Trip>();
     
-    ownerSnapshot.forEach((doc) => {
-      tripsMap.set(doc.id, {
-        id: doc.id,
-        ...doc.data(),
+    ownerSnapshot.forEach((docSnap) => {
+      tripsMap.set(docSnap.id, {
+        id: docSnap.id,
+        ...docSnap.data(),
       } as Trip);
     });
 
-    memberSnapshot.forEach((doc) => {
-      if (!tripsMap.has(doc.id)) {
-        tripsMap.set(doc.id, {
-          id: doc.id,
-          ...doc.data(),
+    memberSnapshot.forEach((docSnap) => {
+      if (!tripsMap.has(docSnap.id)) {
+        tripsMap.set(docSnap.id, {
+          id: docSnap.id,
+          ...docSnap.data(),
         } as Trip);
       }
     });
@@ -188,7 +202,8 @@ export async function getTripsForUser(userId: string): Promise<Trip[]> {
  */
 export async function getTripById(tripId: string): Promise<Trip | null> {
   try {
-    const tripRef = doc(db, "trips", tripId);
+    const firestore = getDb();
+    const tripRef = doc(firestore, "trips", tripId);
     const tripSnap = await getDoc(tripRef);
     
     if (tripSnap.exists()) {
@@ -210,7 +225,8 @@ export async function getTripById(tripId: string): Promise<Trip | null> {
  */
 export async function addMemberToTrip(tripId: string, userId: string): Promise<void> {
   try {
-    const tripRef = doc(db, "trips", tripId);
+    const firestore = getDb();
+    const tripRef = doc(firestore, "trips", tripId);
     await updateDoc(tripRef, {
       members: arrayUnion(userId),
       updatedAt: Timestamp.now(),
@@ -226,13 +242,14 @@ export async function addMemberToTrip(tripId: string, userId: string): Promise<v
  */
 export async function getItineraryDays(tripId: string): Promise<ItineraryDay[]> {
   try {
-    const itineraryRef = collection(db, "trips", tripId, "itinerary");
+    const firestore = getDb();
+    const itineraryRef = collection(firestore, "trips", tripId, "itinerary");
     const q = query(itineraryRef, orderBy("dayNumber", "asc"));
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     } as ItineraryDay));
   } catch (error) {
     console.error("Error getting itinerary days:", error);
@@ -245,13 +262,14 @@ export async function getItineraryDays(tripId: string): Promise<ItineraryDay[]> 
  */
 export async function getExpenses(tripId: string): Promise<Expense[]> {
   try {
-    const expensesRef = collection(db, "trips", tripId, "expenses");
+    const firestore = getDb();
+    const expensesRef = collection(firestore, "trips", tripId, "expenses");
     const q = query(expensesRef, orderBy("date", "desc"));
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     } as Expense));
   } catch (error) {
     console.error("Error getting expenses:", error);
@@ -264,16 +282,17 @@ export async function getExpenses(tripId: string): Promise<Expense[]> {
  */
 export async function getPublicTrips(limit: number = 20): Promise<Trip[]> {
   try {
+    const firestore = getDb();
     const q = query(
-      collection(db, "trips"),
+      collection(firestore, "trips"),
       where("isPublic", "==", true),
       orderBy("createdAt", "desc")
     );
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.slice(0, limit).map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    return snapshot.docs.slice(0, limit).map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     } as Trip));
   } catch (error) {
     console.error("Error getting public trips:", error);

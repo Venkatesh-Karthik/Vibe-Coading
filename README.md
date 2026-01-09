@@ -1,88 +1,126 @@
-# Vibe Coading (vyntra)
+# TripMosaic+ (VYNTRA)
 
-This repository is a Next.js + Tailwind starter with a small landing UI and placeholder cards.
+A beautiful, glassmorphism-styled group trip planner with Firebase auth, Explore destinations, organizer tools, and smooth animations — fully responsive and deployable on Vercel.
 
-## Requirements
-- Node >= 20
-- npm
+## Features
 
-## Setup
-1. `npm install`
-2. `npm run dev`
-3. Open http://localhost:3000
+- 🎨 **Glassmorphism UI** - Modern, translucent design with blur effects
+- 🔐 **Firebase Authentication** - Secure Google login integration
+- 🗺️ **Explore Destinations** - Browse curated travel destinations
+- 📅 **Dynamic Trip Planner** - Drag-and-drop day-wise itinerary
+- 💰 **Collaborative Expenses** - Split costs and settle up with friends
+- 📸 **Memory Wall** - Share photos and relive trip memories
+- 📱 **Fully Responsive** - Works beautifully on mobile and desktop
+- ⚡ **Smooth Animations** - Powered by Framer Motion
 
-## Notes
-- Dependencies have been pinned for deterministic installs.
-- Run `npm run type-check` to run TypeScript checks.
+## Tech Stack
 
-## Firestore Seeding
+- **Framework**: Next.js 14+ (App Router, TypeScript)
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Backend**: Firebase (Auth + Firestore + Storage)
+- **Icons**: Lucide React
+- **Deployment**: Vercel-ready
 
-This project includes a one-click Firestore seeding API for dev/staging environments.
+## Getting Started
 
-### Environment Variables
+### Prerequisites
 
-Set the following environment variables in your Vercel project or `.env.local`:
+- Node.js >= 20
+- npm or yarn
+- Firebase project (for authentication and database)
 
-1. **FIREBASE_SERVICE_ACCOUNT_B64** (recommended for Vercel)
-   - Base64-encoded Firebase service account JSON
-   - Generate: `cat service-account.json | base64 -w 0` (Linux) or `cat service-account.json | base64` (Mac)
-   
-2. **FIREBASE_SERVICE_ACCOUNT** (alternative)
-   - Plain JSON string of Firebase service account
-   
-3. **SEED_SECRET** (required)
-   - Secret token for authenticating seed requests
-   - Generate a strong random string: `openssl rand -hex 32`
+### Installation
 
-### Seeding via API (Vercel/Production)
-
-After deploying to Vercel:
-
-```bash
-# Using x-seed-secret header
-curl -X POST https://your-app.vercel.app/api/seed \
-  -H "x-seed-secret: YOUR_SEED_SECRET"
-
-# Using Authorization Bearer
-curl -X POST https://your-app.vercel.app/api/seed \
-  -H "Authorization: Bearer YOUR_SEED_SECRET"
-```
-
-Response:
-```json
-{
-  "success": true,
-  "message": "Firestore seeded successfully",
-  "tripIds": ["abc123", "def456", "ghi789"],
-  "timestamp": "2024-03-15T10:30:00.000Z"
-}
-```
-
-### Local Seeding via Script
-
-For local development, use the admin seed script:
-
-1. Download your Firebase service account JSON from Firebase Console
-2. Set the environment variable:
+1. Clone the repository:
    ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
-   ```
-3. Run the seed script:
-   ```bash
-   npx tsx scripts/seed-admin.ts
+   git clone <repository-url>
+   cd Vibe-Coading
    ```
 
-### Security Notes
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-⚠️ **Important Security Guidelines:**
+3. Create a `.env.local` file in the root directory with your Firebase configuration:
+   ```env
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+   ```
 
-- **Never commit** service account JSON files or real secrets to the repository
-- Use `.gitignore` to exclude `*service-account*.json` files
-- Rotate or remove `SEED_SECRET` after seeding in production
-- The seed endpoint is protected and requires authentication
-- Consider disabling the seed API in production by removing the route or checking `NODE_ENV`
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-### Firestore Rules
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run type-check` - Run TypeScript type checking
+
+## Deploying to Vercel
+
+1. Push your code to GitHub
+2. Connect your repository to [Vercel](https://vercel.com)
+3. Add your environment variables in Vercel's project settings:
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+4. Deploy!
+
+## Project Structure
+
+```
+TripMosaic+ /
+ ├─ public/
+ │   └─ images/              # Destination images
+ ├─ src/
+ │   ├─ app/
+ │   │   ├─ layout.tsx       # Root layout with providers
+ │   │   ├─ globals.css      # Global styles
+ │   │   ├─ page.tsx         # Home page
+ │   │   ├─ explore/         # Explore destinations
+ │   │   ├─ join/            # Join trip with code
+ │   │   ├─ organizer/       # Trip organizer pages
+ │   │   └─ trip/            # Trip detail pages
+ │   ├─ components/
+ │   │   ├─ Navbar.tsx       # Glassmorphism navbar
+ │   │   ├─ DestinationCard.tsx
+ │   │   ├─ FeatureCard.tsx
+ │   │   ├─ Footer.tsx
+ │   │   └─ Expenses.tsx
+ │   └─ lib/
+ │       ├─ firebase.ts      # Firebase initialization
+ │       ├─ auth-context.tsx # Auth provider
+ │       └─ ClientProviders.tsx
+ ├─ .env.local               # Environment variables (create this)
+ ├─ tailwind.config.js
+ ├─ next.config.mjs
+ ├─ package.json
+ └─ README.md
+```
+
+## Firebase Setup
+
+1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com)
+2. Enable Google Authentication in Firebase Auth
+3. Create a Firestore database
+4. Enable Firebase Storage (optional, for photo uploads)
+5. Copy your Firebase config to `.env.local`
+
+## Firestore Rules
 
 Deploy the included `firestore.rules` to your Firebase project:
 
@@ -95,3 +133,11 @@ The rules enforce:
 - Public trips are readable by anyone
 - Private trips are only readable by owner and members
 - Subcollections (itinerary, expenses) inherit parent trip permissions
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).

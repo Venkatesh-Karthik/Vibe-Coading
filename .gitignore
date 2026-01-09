@@ -18,6 +18,7 @@ tsconfig.tsbuildinfo
 # Env
 .env
 .env.*
+!.env.example
 # Firebase service accounts
 *service-account*.json
 firebase-adminsdk*.json
