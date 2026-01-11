@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -12,31 +13,45 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
+import { Calendar, MapPin, Users, CheckCircle } from "lucide-react";
+import Footer from "../../components/Footer";
+import { mockTrips } from "../../utils/mockData";
 
 export default function JoinByCodePage() {
   const { user } = useAuth();
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [previewTrip, setPreviewTrip] = useState<typeof mockTrips[0] | null>(null);
+  const [joinSuccess, setJoinSuccess] = useState(false);
 
-  async function join() {
+  async function searchTrip() {
     setMsg(null);
-    if (!user) {
-      setMsg("Please login with Google first (top right).");
-      return;
-    }
-    if (!db) {
-      setMsg("Firebase not configured. Please check environment variables.");
-      return;
-    }
+    setPreviewTrip(null);
+    
     const clean = code.trim().toUpperCase();
     if (clean.length < 4) {
       setMsg("Enter a valid TripCode.");
       return;
     }
+
     setBusy(true);
     try {
-      // find trip by trip_code
+      // Try mock data first
+      const mockTrip = mockTrips.find(t => t.tripCode === clean);
+      if (mockTrip) {
+        setPreviewTrip(mockTrip);
+        setBusy(false);
+        return;
+      }
+
+      // Then try Firebase if available
+      if (!db) {
+        setMsg("No trip found for that code.");
+        setBusy(false);
+        return;
+      }
+
       const tripsQ = query(
         collection(db, "trips"),
         where("trip_code", "==", clean)
@@ -46,23 +61,64 @@ export default function JoinByCodePage() {
         setMsg("No trip found for that code.");
         return;
       }
-      const t = snap.docs[0];
-      const tripId = t.id;
-      // write membership under /participants/{tripId}/users/{uid}
-      const memberRef = doc(db, "participants", tripId, "users", user.uid);
-      await setDoc(
-        memberRef,
-        {
-          user_id: user.uid,
-          display_name: user.displayName || user.email || "Traveler",
-          photo_url: user.photoURL || null,
-          role: "traveler",
-          status: "approved",
-          joined_at: Date.now(),
-        },
-        { merge: true }
-      );
-      setMsg(`Joined "${t.data().title}". You can open the trip now.`);
+      
+      const tripData = snap.docs[0].data();
+      setPreviewTrip({
+        id: snap.docs[0].id,
+        name: tripData.title || "Trip",
+        destination: tripData.destination || "Unknown",
+        startDate: tripData.startDate || "",
+        endDate: tripData.endDate || "",
+        coverImage: tripData.cover || "",
+        travelers: tripData.members?.length || 0,
+        status: "planning",
+        type: [],
+        budget: tripData.baseCost || 0,
+        organizer: tripData.ownerName || "Organizer",
+        organizerId: tripData.ownerId || "",
+        description: "",
+        isPublic: true,
+        tripCode: clean,
+      });
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      setMsg(error?.message || "Failed to search trip.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function joinTrip() {
+    if (!user) {
+      setMsg("Please login with Google first (top right).");
+      return;
+    }
+    
+    if (!previewTrip) {
+      setMsg("No trip selected.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (db) {
+        const memberRef = doc(db, "participants", previewTrip.id, "users", user.uid);
+        await setDoc(
+          memberRef,
+          {
+            user_id: user.uid,
+            display_name: user.displayName || user.email || "Traveler",
+            photo_url: user.photoURL || null,
+            role: "traveler",
+            status: "approved",
+            joined_at: Date.now(),
+          },
+          { merge: true }
+        );
+      }
+      
+      setJoinSuccess(true);
+      setMsg(`Successfully joined "${previewTrip.name}"!`);
     } catch (e: unknown) {
       const error = e as { message?: string };
       setMsg(error?.message || "Failed to join trip.");
@@ -72,41 +128,189 @@ export default function JoinByCodePage() {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Join a Trip</h1>
-      <p className="text-slate-600 mt-1">
-        Enter the 6-character TripCode shared by the organizer.
-      </p>
+    <div className="min-h-screen flex flex-col pt-24">
+      <main className="flex-1 px-4 py-12">
+        <div className="max-w-2xl mx-auto">
+          {/* Hero Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <span className="gradient-text">Join a Trip</span>
+            </h1>
+            <p className="text-slate-600 text-lg">
+              Enter the trip code shared by the organizer to join the adventure
+            </p>
+          </motion.div>
 
-      <div className="mt-5 flex gap-2">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="e.g. AB23CD"
-          className="flex-1 border rounded-lg px-3 py-2 uppercase tracking-widest"
-        />
-        <button
-          onClick={join}
-          disabled={busy}
-          className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-60"
-        >
-          {busy ? "Joining…" : "Join"}
-        </button>
-      </div>
+          {/* Trip Code Input */}
+          {!joinSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="glass-panel p-8 mb-8"
+            >
+              <label className="block text-sm font-medium text-slate-700 mb-3">
+                Trip Code
+              </label>
+              <div className="flex gap-3">
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="e.g. GOA2024"
+                  disabled={busy}
+                  className="flex-1 px-4 py-3 text-center text-2xl font-bold tracking-widest uppercase rounded-xl border-2 border-white/40 bg-white/50 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-50"
+                  maxLength={8}
+                />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={searchTrip}
+                  disabled={busy || code.length < 4}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {busy ? "Searching..." : "Search"}
+                </motion.button>
+              </div>
 
-      {msg && (
-        <div className="mt-3 text-sm text-slate-800 rounded border bg-white p-3">
-          {msg}
+              {msg && !previewTrip && (
+                <div className="mt-4 p-3 rounded-xl bg-white/60 text-sm text-slate-800">
+                  {msg}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Trip Preview */}
+          {previewTrip && !joinSuccess && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass-panel overflow-hidden mb-6"
+            >
+              {/* Cover Image */}
+              <div className="relative h-48 bg-gradient-to-br from-slate-200 to-slate-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-sky-400/20 to-purple-400/20" />
+              </div>
+
+              {/* Trip Details */}
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                  {previewTrip.name}
+                </h2>
+                
+                <div className="space-y-2 mb-6">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <MapPin className="h-5 w-5" />
+                    <span>{previewTrip.destination}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Calendar className="h-5 w-5" />
+                    <span>{previewTrip.startDate} → {previewTrip.endDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Users className="h-5 w-5" />
+                    <span>{previewTrip.travelers} travelers</span>
+                  </div>
+                </div>
+
+                <div className="mb-4 p-3 rounded-xl bg-sky-50/50 border border-sky-200">
+                  <p className="text-sm text-slate-700">
+                    <strong>Organized by:</strong> {previewTrip.organizer}
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={joinTrip}
+                    disabled={busy}
+                    className="flex-1 btn-primary"
+                  >
+                    {busy ? "Joining..." : "Join This Trip"}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setPreviewTrip(null);
+                      setCode("");
+                      setMsg(null);
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Success State */}
+          {joinSuccess && previewTrip && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass-panel p-12 text-center"
+            >
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 flex items-center justify-center">
+                <CheckCircle className="h-12 w-12 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold mb-4">
+                <span className="gradient-text">Success!</span>
+              </h2>
+              <p className="text-slate-600 text-lg mb-8">
+                You've joined "{previewTrip.name}"
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href={`/trip/${previewTrip.id}`}>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="btn-primary"
+                  >
+                    View Trip Dashboard
+                  </motion.button>
+                </Link>
+                <Link href="/explore">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="btn-secondary"
+                  >
+                    Explore More Trips
+                  </motion.button>
+                </Link>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Help Section */}
+          {!joinSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center text-sm text-slate-600"
+            >
+              <p className="mb-2">Don't have a trip code?</p>
+              <Link href="/explore" className="text-sky-600 hover:text-sky-700 font-medium">
+                Explore public trips
+              </Link>
+              {" or "}
+              <Link href="/organizer/new" className="text-sky-600 hover:text-sky-700 font-medium">
+                create your own trip
+              </Link>
+            </motion.div>
+          )}
         </div>
-      )}
+      </main>
 
-      <div className="mt-6 text-sm text-slate-600">
-        Don&apos;t have a code?{" "}
-        <Link href="/explore" className="underline">
-          Explore public trips
-        </Link>
-        .
-      </div>
-    </main>
+      <Footer />
+    </div>
   );
 }
