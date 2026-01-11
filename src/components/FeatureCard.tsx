@@ -2,12 +2,14 @@
 
 import { motion } from "framer-motion";
 import { LucideIcon } from "lucide-react";
+import Link from "next/link";
 
 interface FeatureCardProps {
   icon: LucideIcon;
   title: string;
   description: string;
   delay?: number;
+  href?: string;
 }
 
 export default function FeatureCard({
@@ -15,8 +17,9 @@ export default function FeatureCard({
   title,
   description,
   delay = 0,
+  href,
 }: FeatureCardProps) {
-  return (
+  const content = (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -45,7 +48,7 @@ export default function FeatureCard({
 
       {/* Hover indicator */}
       <div className="mt-4 flex items-center text-xs font-medium text-sky-500 opacity-0 group-hover:opacity-100 transition-opacity">
-        <span>Learn more</span>
+        <span>Explore feature</span>
         <motion.span
           className="ml-1"
           initial={{ x: 0 }}
@@ -56,4 +59,10 @@ export default function FeatureCard({
       </div>
     </motion.div>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+
+  return content;
 }
