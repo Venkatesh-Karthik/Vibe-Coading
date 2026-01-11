@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe2, Menu, X, LogOut, User } from "lucide-react";
 import { useAuth } from "../lib/auth-context";
+import NotificationBell from "./NotificationBell";
 
 function cx(...cls: Array<string | false | null | undefined>) {
   return cls.filter(Boolean).join(" ");
@@ -84,14 +85,17 @@ export default function Navbar() {
           </ul>
 
           {/* Auth area */}
-          <div className="ml-2">
+          <div className="ml-2 flex items-center gap-2">
             {loading ? (
               <div className="h-9 w-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xs" />
             ) : user ? (
-              <UserMenu
-                user={{ name: user.displayName || user.email || "You", photo: user.photoURL || "" }}
-                onLogout={logout}
-              />
+              <>
+                <NotificationBell />
+                <UserMenu
+                  user={{ name: user.displayName || user.email || "You", photo: user.photoURL || "" }}
+                  onLogout={logout}
+                />
+              </>
             ) : (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -242,10 +246,17 @@ function UserMenu({
       {/* glass dropdown */}
       <div className="invisible absolute right-0 mt-2 w-56 translate-y-1 rounded-2xl border border-white/30 bg-white/60 p-2 text-sm shadow-xl backdrop-blur-xl opacity-0 transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
         <Link
-          href="/organizer/new"
+          href="/profile"
           className="flex items-center gap-2 rounded-xl px-3 py-2 text-slate-800 transition hover:bg-white/70"
         >
           <User className="h-4 w-4" />
+          My Profile
+        </Link>
+        <Link
+          href="/organizer"
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-slate-800 transition hover:bg-white/70"
+        >
+          <Globe2 className="h-4 w-4" />
           Organizer Dashboard
         </Link>
         <Link
