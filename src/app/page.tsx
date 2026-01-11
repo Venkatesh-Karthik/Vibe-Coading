@@ -173,18 +173,21 @@ export default function Home() {
               title="Dynamic Planner"
               description="Drag-and-drop day cards, live map integration, and real-time comments for collaborative planning."
               delay={0.1}
+              href="/planner"
             />
             <FeatureCard
               icon={CreditCard}
               title="Collaborative Expenses"
               description="Track shared expenses, auto-split costs, and settle up with suggested transfers."
               delay={0.2}
+              href="/expenses"
             />
             <FeatureCard
               icon={Camera}
               title="Memory Wall"
               description="Upload photos & videos, highlight top moments, and relive your favorite group memories."
               delay={0.3}
+              href="/memories"
             />
           </div>
         </div>
