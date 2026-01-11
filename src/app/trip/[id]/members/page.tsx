@@ -25,6 +25,7 @@ export default function MembersPage() {
   };
 
   const copyTripLink = () => {
+    if (typeof window === "undefined") return;
     const link = `${window.location.origin}/join?code=${trip?.tripCode || ""}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
