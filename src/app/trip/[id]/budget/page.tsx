@@ -4,8 +4,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, TrendingUp, DollarSign, PieChart } from "lucide-react";
-import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Plus, TrendingUp, DollarSign, PieChart as PieChartIcon } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import Footer from "@/components/Footer";
 import { mockExpenses, getTripById, mockUsers } from "@/utils/mockData";
 
@@ -153,12 +153,12 @@ export default function BudgetPage() {
               className="glass-panel p-6"
             >
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <PieChart className="h-5 w-5 text-sky-500" />
+                <PieChartIcon className="h-5 w-5 text-sky-500" />
                 Spending by Category
               </h2>
 
               <ResponsiveContainer width="100%" height={200}>
-                <RechartsPie>
+                <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
@@ -172,7 +172,7 @@ export default function BudgetPage() {
                     ))}
                   </Pie>
                   <Tooltip />
-                </RechartsPie>
+                </PieChart>
               </ResponsiveContainer>
 
               {/* Legend */}
