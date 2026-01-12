@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   Plus,
@@ -15,18 +15,11 @@ import {
   Send,
   ArrowLeft,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useSupabaseAuth } from "@/lib/auth";
+import type { Activity, ItineraryDay } from "@/types/database";
 
-interface Activity {
-  id: string;
-  place: string;
-  time: string;
-  cost: string;
-  notes: string;
-}
-
-interface Day {
-  id: string;
-  dayNumber: number;
+interface DayWithActivities extends ItineraryDay {
   activities: Activity[];
 }
 
@@ -38,56 +31,14 @@ interface Message {
   isYou: boolean;
 }
 
+// Mock tripId - in production, this would come from URL params or context
+const MOCK_TRIP_ID = "demo-trip-123";
+
 export default function DynamicPlannerPage() {
-  const [days, setDays] = useState<Day[]>([
-    {
-      id: "day1",
-      dayNumber: 1,
-      activities: [
-        {
-          id: "act1",
-          place: "Airport Pickup",
-          time: "10:00 AM",
-          cost: "₹500",
-          notes: "Terminal 2",
-        },
-        {
-          id: "act2",
-          place: "Hotel Check-in",
-          time: "12:00 PM",
-          cost: "₹0",
-          notes: "Grand Plaza Hotel",
-        },
-        {
-          id: "act3",
-          place: "City Tour",
-          time: "3:00 PM",
-          cost: "₹1,200",
-          notes: "Visit main landmarks",
-        },
-      ],
-    },
-    {
-      id: "day2",
-      dayNumber: 2,
-      activities: [
-        {
-          id: "act4",
-          place: "Beach Visit",
-          time: "9:00 AM",
-          cost: "₹300",
-          notes: "Pack sunscreen",
-        },
-        {
-          id: "act5",
-          place: "Lunch at Seaside",
-          time: "1:00 PM",
-          cost: "₹800",
-          notes: "Fresh seafood",
-        },
-      ],
-    },
-  ]);
+  const { user } = useSupabaseAuth();
+  const [days, setDays] = useState<DayWithActivities[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -115,18 +66,131 @@ export default function DynamicPlannerPage() {
 
   const [newMessage, setNewMessage] = useState("");
 
-  const handleAddDay = () => {
-    const newDay: Day = {
-      id: `day${days.length + 1}`,
-      dayNumber: days.length + 1,
-      activities: [],
-    };
-    setDays([...days, newDay]);
-  };
+  // Load itinerary from Supabase
+  useEffect(() => {
+    loadItinerary();
+  }, []);
 
-  const handleDeleteDay = (dayId: string) => {
-    setDays(days.filter((d) => d.id !== dayId));
-  };
+  async function loadItinerary() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: daysData, error: daysError } = await supabase
+        .from("itinerary_days")
+        .select(`
+          *,
+          activities (*)
+        `)
+        .eq("trip_id", MOCK_TRIP_ID)
+        .order("day_number", { ascending: true });
+
+      if (daysError) throw daysError;
+
+      setDays((daysData as DayWithActivities[]) || []);
+    } catch (err) {
+      console.error("Error loading itinerary:", err);
+      setError(err instanceof Error ? err.message : "Failed to load itinerary");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAddDay() {
+    try {
+      const nextDayNumber = days.length > 0 ? Math.max(...days.map(d => d.day_number)) + 1 : 1;
+
+      const { data, error } = await supabase
+        .from("itinerary_days")
+        .insert({
+          trip_id: MOCK_TRIP_ID,
+          day_number: nextDayNumber,
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add to local state
+      setDays([...days, { ...(data as any), activities: [] } as DayWithActivities]);
+    } catch (err) {
+      console.error("Error adding day:", err);
+      alert("Failed to add day");
+    }
+  }
+
+  async function handleDeleteDay(dayId: string) {
+    try {
+      const { error } = await supabase
+        .from("itinerary_days")
+        .delete()
+        .eq("id", dayId);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setDays(days.filter((d) => d.id !== dayId));
+    } catch (err) {
+      console.error("Error deleting day:", err);
+      alert("Failed to delete day");
+    }
+  }
+
+  async function handleAddActivity(dayId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("activities")
+        .insert({
+          day_id: dayId,
+          title: "New Activity",
+          time: "12:00 PM",
+          cost: 0,
+          notes: "",
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      setDays(
+        days.map((day) =>
+          day.id === dayId
+            ? { ...day, activities: [...day.activities, data as Activity] }
+            : day
+        )
+      );
+    } catch (err) {
+      console.error("Error adding activity:", err);
+      alert("Failed to add activity");
+    }
+  }
+
+  async function handleDeleteActivity(activityId: string, dayId: string) {
+    try {
+      const { error } = await supabase
+        .from("activities")
+        .delete()
+        .eq("id", activityId);
+
+      if (error) throw error;
+
+      // Update local state
+      setDays(
+        days.map((day) =>
+          day.id === dayId
+            ? {
+                ...day,
+                activities: day.activities.filter((a) => a.id !== activityId),
+              }
+            : day
+        )
+      );
+    } catch (err) {
+      console.error("Error deleting activity:", err);
+      alert("Failed to delete activity");
+    }
+  }
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
@@ -144,6 +208,37 @@ export default function DynamicPlannerPage() {
       setNewMessage("");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 pt-24 px-4 pb-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto"></div>
+            <p className="mt-4 text-slate-600">Loading itinerary...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 pt-24 px-4 pb-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <p className="text-rose-600">Error: {error}</p>
+            <button
+              onClick={loadItinerary}
+              className="mt-4 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 pt-24 px-4 pb-8">
@@ -181,63 +276,78 @@ export default function DynamicPlannerPage() {
             </motion.button>
           </div>
 
-          {days.map((day, index) => (
-            <motion.div
-              key={day.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-panel p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <GripVertical className="h-4 w-4 text-slate-400 cursor-grab" />
-                  <h3 className="font-bold text-slate-900">Day {day.dayNumber}</h3>
-                </div>
-                <button
-                  onClick={() => handleDeleteDay(day.id)}
-                  className="p-1 rounded-lg hover:bg-rose-100 text-rose-600 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Activities */}
-              <div className="space-y-2">
-                {day.activities.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="p-3 rounded-xl bg-white/60 space-y-1"
-                  >
-                    <div className="flex items-start justify-between">
-                      <p className="font-semibold text-sm text-slate-900">
-                        {activity.place}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-600">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{activity.time}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        <span>{activity.cost}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500">{activity.notes}</p>
-                  </div>
-                ))}
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-2 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 text-sm font-medium hover:border-sky-400 hover:text-sky-600 transition-colors"
+          {days.length === 0 ? (
+            <div className="glass-panel p-4 text-center text-slate-600">
+              <p>No days yet. Click + to add one!</p>
+            </div>
+          ) : (
+            days.map((day, index) => (
+              <motion.div
+                key={day.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="glass-panel p-4 space-y-3"
               >
-                + Add Activity
-              </motion.button>
-            </motion.div>
-          ))}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-4 w-4 text-slate-400 cursor-grab" />
+                    <h3 className="font-bold text-slate-900">Day {day.day_number}</h3>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteDay(day.id)}
+                    className="p-1 rounded-lg hover:bg-rose-100 text-rose-600 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Activities */}
+                <div className="space-y-2">
+                  {day.activities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="p-3 rounded-xl bg-white/60 space-y-1 group relative"
+                    >
+                      <div className="flex items-start justify-between">
+                        <p className="font-semibold text-sm text-slate-900">
+                          {activity.title || activity.location || "Untitled Activity"}
+                        </p>
+                        <button
+                          onClick={() => handleDeleteActivity(activity.id, day.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-100 text-rose-600 transition-all"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-600">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>{activity.time || "TBD"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          <span>₹{activity.cost || 0}</span>
+                        </div>
+                      </div>
+                      {activity.notes && (
+                        <p className="text-xs text-slate-500">{activity.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleAddActivity(day.id)}
+                  className="w-full py-2 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 text-sm font-medium hover:border-sky-400 hover:text-sky-600 transition-colors"
+                >
+                  + Add Activity
+                </motion.button>
+              </motion.div>
+            ))
+          )}
         </div>
 
         {/* Center Panel - Map */}
