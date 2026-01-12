@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { MockTrip } from "@/utils/mockData";
+import { getDaysDiff, formatDate } from "@/utils/tripHelpers";
 
 interface TripHeaderProps {
   trip: MockTrip;
@@ -13,18 +14,6 @@ export default function TripHeader({ trip }: TripHeaderProps) {
     planning: "text-amber-600 bg-amber-100",
     active: "text-emerald-600 bg-emerald-100",
     completed: "text-sky-600 bg-sky-100",
-  };
-
-  const getDaysDiff = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    return diff + 1;
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   const days = getDaysDiff(trip.startDate, trip.endDate);

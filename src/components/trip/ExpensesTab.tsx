@@ -25,9 +25,8 @@ export default function ExpensesTab({ tripId, budget }: ExpensesTabProps) {
 
   // Calculate totals
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalBudget = budget;
-  const remaining = totalBudget - totalSpent;
-  const percentSpent = Math.min((totalSpent / totalBudget) * 100, 100);
+  const remaining = budget - totalSpent;
+  const percentSpent = Math.min((totalSpent / budget) * 100, 100);
 
   // Group by category
   const expensesByCategory = expenses.reduce((acc, expense) => {
@@ -75,7 +74,7 @@ export default function ExpensesTab({ tripId, budget }: ExpensesTabProps) {
             <div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-slate-600">Total Budget</span>
-                <span className="text-lg font-bold text-slate-900">₹{totalBudget.toLocaleString()}</span>
+                <span className="text-lg font-bold text-slate-900">₹{budget.toLocaleString()}</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-slate-600">Total Spent</span>
