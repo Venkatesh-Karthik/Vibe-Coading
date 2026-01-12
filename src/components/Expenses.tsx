@@ -1,165 +1,194 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { db } from "../lib/firebase";
-import {
-  addDoc,
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
+import { supabase } from "../lib/supabase";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { useAuth } from "../lib/auth-context";
+import { useSupabaseAuth } from "../lib/auth";
+import { calculateBalances, calculateSettlement, calculateCategoryTotals } from "../lib/helpers/expenses";
+import type { Expense, ExpenseSplit, User } from "@/types/database";
 
 type Participant = { user_id: string; display_name?: string | null; photo_url?: string | null };
-type Expense = {
-  id: string;
-  title: string;
-  amount: number;
-  kind: "stay" | "food" | "travel" | "entry" | "other";
-  paid_by: string;
-  split_between: string[];
-  created_at?: Timestamp | Date | null;
+type ExpenseWithSplits = Expense & {
+  expense_splits: ExpenseSplit[];
 };
 
-function round2(n: number) {
-  return Math.round(n * 100) / 100;
-}
-
-function settle(balances: Record<string, number>) {
-  const creditors: [uid: string, amt: number][] = [];
-  const debtors: [uid: string, amt: number][] = [];
-  for (const [u, v] of Object.entries(balances)) {
-    if (v > 0.009) creditors.push([u, v]);
-    else if (v < -0.009) debtors.push([u, v]);
-  }
-  creditors.sort((a, b) => b[1] - a[1]);
-  debtors.sort((a, b) => a[1] - b[1]);
-  const transfers: { from: string; to: string; amount: number }[] = [];
-  let i = 0,
-    j = 0;
-  while (i < creditors.length && j < debtors.length) {
-    const [cu, cv] = creditors[i];
-    const [du, dv] = debtors[j];
-    const pay = Math.min(cv, -dv);
-    transfers.push({ from: du, to: cu, amount: round2(pay) });
-    creditors[i][1] = round2(cv - pay);
-    debtors[j][1] = round2(dv + pay);
-    if (creditors[i][1] <= 0.009) i++;
-    if (debtors[j][1] >= -0.009) j++;
-  }
-  return transfers;
-}
-
 export default function Expenses({ tripId }: { tripId: string }) {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
 
   // Participants (to know who can be included in splits)
   const [members, setMembers] = useState<Participant[]>([]);
-  useEffect(() => {
-    if (!db) return;
-    const q = query(collection(db, "participants", tripId, "users"));
-    const unsub = onSnapshot(q, (snap) => {
-      setMembers(snap.docs.map((d) => d.data() as Participant));
-    });
-    return () => unsub();
-  }, [tripId]);
-
+  
   // Expenses list
-  const [items, setItems] = useState<Expense[]>([]);
+  const [items, setItems] = useState<ExpenseWithSplits[]>([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    if (!db) {
-      setLoading(false);
-      return;
-    }
-    const q = query(
-      collection(db, "expenses", tripId, "items"),
-      orderBy("created_at", "asc")
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setItems(
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Expense, "id">) })) as Expense[]
-        );
-        setLoading(false);
-      },
-      () => setLoading(false)
-    );
-    return () => unsub();
-  }, [tripId]);
+  const [error, setError] = useState<string | null>(null);
 
   // Add expense form
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState<number | ''>("");
-  const [kind, setKind] = useState<Expense["kind"]>("food");
+  const [kind, setKind] = useState<Expense["category"]>("food");
   const [splitBetween, setSplitBetween] = useState<string[] | null>(null);
 
+  // Load members (trip participants)
   useEffect(() => {
-    if (members.length && splitBetween === null) {
-      setSplitBetween(members.map((m) => m.user_id));
+    loadMembers();
+  }, [tripId]);
+
+  // Load expenses
+  useEffect(() => {
+    loadExpenses();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel(`expenses-${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'expenses',
+          filter: `trip_id=eq.${tripId}`
+        },
+        () => {
+          loadExpenses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId]);
+
+  async function loadMembers() {
+    try {
+      // Get trip members
+      const { data: tripMembers, error: membersError } = await supabase
+        .from("trip_members")
+        .select("user_id, users(id, name, photo)")
+        .eq("trip_id", tripId);
+
+      if (membersError) throw membersError;
+
+      const participants: Participant[] = (tripMembers as any)
+        ?.map((tm: any) => ({
+          user_id: tm.user_id || "",
+          display_name: tm.users?.name || null,
+          photo_url: tm.users?.photo || null,
+        }))
+        .filter((p: Participant) => p.user_id) || [];
+
+      setMembers(participants);
+      
+      if (splitBetween === null) {
+        setSplitBetween(participants.map((m) => m.user_id));
+      }
+    } catch (err) {
+      console.error("Error loading members:", err);
     }
-  }, [members, splitBetween]);
+  }
+
+  async function loadExpenses() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: expensesData, error: expensesError } = await supabase
+        .from("expenses")
+        .select(`
+          *,
+          expense_splits (*)
+        `)
+        .eq("trip_id", tripId)
+        .order("created_at", { ascending: true });
+
+      if (expensesError) throw expensesError;
+
+      setItems((expensesData as ExpenseWithSplits[]) || []);
+    } catch (err) {
+      console.error("Error loading expenses:", err);
+      setError(err instanceof Error ? err.message : "Failed to load expenses");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function addExpense() {
     if (!user) return alert("Please login first.");
-    if (!db) return alert("Firebase not configured.");
     const a = Number(amount);
     if (!title || !a || !splitBetween?.length) return alert("Fill all fields.");
-    await addDoc(collection(db, "expenses", tripId, "items"), {
-      title,
-      amount: a,
-      kind,
-      paid_by: user.uid,
-      split_between: splitBetween,
-      created_at: serverTimestamp(),
-    });
-    setTitle("");
-    setAmount("");
-    setKind("food");
+
+    try {
+      // Insert expense
+      const { data: expense, error: expenseError } = await supabase
+        .from("expenses")
+        .insert({
+          trip_id: tripId,
+          title,
+          amount: a,
+          paid_by: user.id,
+          category: kind,
+          date: new Date().toISOString().split("T")[0],
+        } as any)
+        .select()
+        .single();
+
+      if (expenseError) throw expenseError;
+
+      // Insert splits
+      const splits = splitBetween.map((userId) => ({
+        expense_id: (expense as any).id,
+        user_id: userId,
+        share: a / splitBetween.length,
+      }));
+
+      const { error: splitsError } = await supabase
+        .from("expense_splits")
+        .insert(splits as any);
+
+      if (splitsError) throw splitsError;
+
+      // Reset form
+      setTitle("");
+      setAmount("");
+      setKind("food");
+      
+      // Reload expenses
+      await loadExpenses();
+    } catch (err) {
+      console.error("Error adding expense:", err);
+      alert("Failed to add expense");
+    }
   }
 
   // Totals by category (for pie chart)
   const totalsByKind = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const e of items) {
-      map[e.kind] = (map[e.kind] || 0) + Number(e.amount || 0);
-    }
-    return Object.entries(map).map(([name, value]) => ({ name, value: round2(value) }));
+    return calculateCategoryTotals(items);
   }, [items]);
 
   // Per-user balances = paid - owed
   const balances = useMemo(() => {
-    const bal: Record<string, number> = {};
-    for (const m of members) bal[m.user_id] = 0;
-
-    for (const e of items) {
-      const amt = Number(e.amount || 0);
-      const split = e.split_between?.length ? e.split_between : members.map((m) => m.user_id);
-      const perHead = split.length ? amt / split.length : 0;
-      if (e.paid_by) bal[e.paid_by] = round2((bal[e.paid_by] || 0) + amt);
-      for (const u of split) {
-        bal[u] = round2((bal[u] || 0) - perHead);
-      }
-    }
-    return bal;
+    const allSplits = items.flatMap((e) => e.expense_splits || []);
+    return calculateBalances(items, allSplits, members.map((m) => m.user_id));
   }, [items, members]);
 
-  const transfers = useMemo(() => settle(balances), [balances]);
+  const transfers = useMemo(() => calculateSettlement(balances), [balances]);
 
   const nameOf = (uid: string) =>
     members.find((m) => m.user_id === uid)?.display_name || uid.slice(0, 6);
 
   const COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
-  if (!db) {
+  if (error) {
     return (
       <section className="rounded-2xl bg-white shadow p-4">
-        <p className="text-slate-600">Firebase not configured. Please check environment variables.</p>
+        <p className="text-rose-600">Error: {error}</p>
+        <button
+          onClick={loadExpenses}
+          className="mt-2 px-4 py-2 rounded bg-sky-600 text-white hover:bg-sky-700"
+        >
+          Retry
+        </button>
       </section>
     );
   }
@@ -190,8 +219,8 @@ export default function Expenses({ tripId }: { tripId: string }) {
           className="border rounded px-3 py-2"
         />
         <select
-          value={kind}
-          onChange={(e) => setKind(e.target.value as Expense["kind"])}
+          value={kind || "food"}
+          onChange={(e) => setKind(e.target.value as Expense["category"])}
           className="border rounded px-3 py-2"
         >
           <option value="food">Food</option>
@@ -238,7 +267,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
       <div className="mt-3">
         <button
           onClick={addExpense}
-          className="px-4 py-2 rounded bg-slate-900 text-white"
+          className="px-4 py-2 rounded bg-slate-900 text-white hover:bg-slate-800"
         >
           Add Expense
         </button>
@@ -266,7 +295,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
                   <div className="min-w-0">
                     <div className="font-medium truncate">{e.title}</div>
                     <div className="text-xs text-slate-600">
-                      {e.kind} • paid by {nameOf(e.paid_by)}
+                      {e.category} • paid by {nameOf(e.paid_by || "")}
                     </div>
                   </div>
                   <div className="font-semibold">₹{e.amount}</div>

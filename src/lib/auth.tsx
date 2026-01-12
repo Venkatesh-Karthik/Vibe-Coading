@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: session.user.email,
             name: session.user.user_metadata.full_name || session.user.user_metadata.name,
             photo: session.user.user_metadata.avatar_url || session.user.user_metadata.picture
-          }, {
+          } as any, {
             onConflict: 'id'
           })
       }
