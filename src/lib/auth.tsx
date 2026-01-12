@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { supabase } from './supabase'
 import { User } from '@supabase/supabase-js'
+import type { InsertUser } from '@/types/database'
 
 export interface AuthContextType {
   user: User | null
@@ -35,14 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Upsert user data to users table when logged in
       if (session?.user) {
-        await supabase
+        const userData: InsertUser = {
+          id: session.user.id,
+          email: session.user.email || null,
+          name: session.user.user_metadata.full_name || session.user.user_metadata.name || null,
+          photo: session.user.user_metadata.avatar_url || session.user.user_metadata.picture || null
+        }
+        await (supabase as any)
           .from('users')
-          .upsert({
-            id: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata.full_name || session.user.user_metadata.name,
-            photo: session.user.user_metadata.avatar_url || session.user.user_metadata.picture
-          } as any, {
+          .upsert(userData, {
             onConflict: 'id'
           })
       }

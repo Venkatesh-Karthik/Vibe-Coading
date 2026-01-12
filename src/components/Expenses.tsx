@@ -153,8 +153,7 @@ export default function Expenses({ tripId }: { tripId: string }) {
       setAmount("");
       setKind("food");
       
-      // Reload expenses
-      await loadExpenses();
+      // Note: Real-time subscription will automatically update the expenses list
     } catch (err) {
       console.error("Error adding expense:", err);
       alert("Failed to add expense");
