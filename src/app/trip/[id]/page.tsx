@@ -1,230 +1,85 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { db } from "@/lib/firebase";
-import dynamic from "next/dynamic";
-const Expenses = dynamic(() => import("@/components/Expenses"), { ssr: false });
-import {
-    collection,
-    doc,
-    onSnapshot,
-    orderBy,
-    query,
-} from "firebase/firestore";
-import {
-    GoogleMap,
-    Marker,
-    Polyline,
-    useJsApiLoader,
-} from "@react-google-maps/api";
-
-type TripDoc = {
-    title: string;
-    city?: string;
-    cover?: string | null;
-    start_date?: string;
-    end_date?: string;
-};
-
-type Item = {
-    id: string;
-    title: string;
-    day_index?: number;
-    lat: number;
-    lng: number;
-    address?: string;
-    notes?: string;
-    start_time?: string;
-    end_time?: string;
-};
-
-const MAP_H = 360;
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { getTripById } from "@/utils/mockData";
+import TripHeader from "@/components/trip/TripHeader";
+import TabNavigation, { TabType } from "@/components/trip/TabNavigation";
+import OverviewTab from "@/components/trip/OverviewTab";
+import PlannerTab from "@/components/trip/PlannerTab";
+import ExpensesTab from "@/components/trip/ExpensesTab";
+import MembersTab from "@/components/trip/MembersTab";
+import MemoriesTab from "@/components/trip/MemoriesTab";
+import Footer from "@/components/Footer";
 
 export default function TripPage() {
     const params = useParams<{ id: string }>();
+    const router = useRouter();
     const tripId = params.id;
 
-    const [trip, setTrip] = useState<TripDoc | null>(null);
-    const [items, setItems] = useState<Item[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<TabType>("overview");
 
-    // Load Google Maps JS
-    const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-        libraries: ["places"],
-    });
+    // Get trip data from mock data
+    const trip = getTripById(tripId);
 
-    // Firestore listeners: trip doc + itinerary items
-    useEffect(() => {
-        if (!db) {
-            setLoading(false);
-            return;
-        }
-        const unsubTrip = onSnapshot(doc(db, "trips", tripId), (snap) => {
-            setTrip((snap.exists() ? (snap.data() as TripDoc) : null));
-        });
-
-        const q = query(
-            collection(db, "trip_items", tripId, "items"),
-            orderBy("day_index", "asc")
-        );
-        const unsubItems = onSnapshot(
-            q,
-            (snap) => {
-                setItems(
-                    snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Item, "id">) })) as Item[]
-                );
-                setLoading(false);
-            },
-            () => setLoading(false)
-        );
-
-        return () => {
-            unsubTrip();
-            unsubItems();
-        };
-    }, [tripId]);
-
-    // Map path (ordered by day_index then insertion)
-    const path = useMemo(
-        () =>
-            items
-                .filter((i) => typeof i.lat === "number" && typeof i.lng === "number")
-                .map((i) => ({ lat: i.lat, lng: i.lng })),
-        [items]
-    );
-
-    const center = path[0] ?? { lat: 20.5937, lng: 78.9629 }; // India fallback
-
-    if (!db) {
+    if (!trip) {
         return (
-            <main className="mx-auto max-w-6xl px-4 py-8">
-                <p className="text-slate-600">Firebase not configured. Please check environment variables.</p>
-            </main>
+            <div className="min-h-screen flex items-center justify-center pt-24">
+                <div className="glass-panel p-8">
+                    <p className="text-slate-600">Trip not found</p>
+                    <button
+                        onClick={() => router.push("/explore")}
+                        className="mt-4 btn-secondary"
+                    >
+                        Back to Explore
+                    </button>
+                </div>
+            </div>
         );
     }
 
     return (
-        <main className="mx-auto max-w-6xl px-4 py-8">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">
-                        {trip?.title ?? "Trip"}
-                    </h1>
-                    <p className="text-slate-600">
-                        {trip?.city ?? "—"}{" "}
-                        {trip?.start_date && trip?.end_date
-                            ? `• ${trip.start_date} → ${trip.end_date}`
-                            : ""}
-                    </p>
-                </div>
-                <Link
-                    href="/explore"
-                    className="text-sm underline"
-                >
-                    Back to Explore
-                </Link>
-            </div>
-
-            {/* Map + Day list */}
-            <div className="mt-6 grid md:grid-cols-2 gap-6">
-                <div className="rounded-2xl bg-white shadow p-4">
-                    <h3 className="font-semibold mb-2">Itinerary Map</h3>
-                    <div
-                        className="w-full rounded-xl overflow-hidden border"
-                        style={{ height: MAP_H }}
+        <div className="min-h-screen flex flex-col pt-24">
+            <main className="flex-1 px-4 py-12">
+                <div className="max-w-7xl mx-auto">
+                    {/* Back Button */}
+                    <button
+                        onClick={() => router.push("/explore")}
+                        className="mb-6 flex items-center gap-2 text-slate-600 hover:text-slate-900 transition"
                     >
-                        {isLoaded ? (
-                            <GoogleMap
-                                mapContainerStyle={{ width: "100%", height: "100%" }}
-                                center={center}
-                                zoom={path.length ? 12 : 5}
-                            >
-                                {path.map((p, i) => (
-                                    <Marker key={i} position={p} label={`${i + 1}`} />
-                                ))}
-                                {path.length >= 2 && (
-                                    <Polyline path={path} options={{ strokeOpacity: 0.9 }} />
-                                )}
-                            </GoogleMap>
-                        ) : (
-                            <div className="h-full grid place-items-center text-slate-500">
-                                Loading map…
-                            </div>
+                        <ArrowLeft className="h-4 w-4" />
+                        <span className="text-sm font-medium">Back to Explore</span>
+                    </button>
+
+                    {/* Trip Header */}
+                    <TripHeader trip={trip} />
+
+                    {/* Tab Navigation */}
+                    <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+                    {/* Tab Content */}
+                    <div className="mt-6">
+                        {activeTab === "overview" && <OverviewTab trip={trip} />}
+                        {activeTab === "planner" && (
+                            <PlannerTab
+                                tripId={trip.id}
+                                startDate={trip.startDate}
+                                endDate={trip.endDate}
+                            />
                         )}
+                        {activeTab === "expenses" && (
+                            <ExpensesTab tripId={trip.id} budget={trip.budget} />
+                        )}
+                        {activeTab === "members" && (
+                            <MembersTab tripId={trip.id} tripCode={trip.tripCode} />
+                        )}
+                        {activeTab === "memories" && <MemoriesTab tripId={trip.id} />}
                     </div>
                 </div>
+            </main>
 
-                <div className="rounded-2xl bg-white shadow p-4">
-                    <h3 className="font-semibold mb-3">Day Plan</h3>
-
-                    {loading ? (
-                        <div className="space-y-3">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="h-12 rounded-lg bg-slate-100 animate-pulse"
-                                />
-                            ))}
-                        </div>
-                    ) : items.length === 0 ? (
-                        <p className="text-slate-600">
-                            No itinerary items yet. Ask the organizer to add places from the
-                            Organizer dashboard.
-                        </p>
-                    ) : (
-                        <ol className="space-y-3">
-                            {items.map((it, i) => (
-                                <li
-                                    key={it.id}
-                                    className="p-3 rounded-lg border hover:bg-slate-50"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="font-medium">
-                                            {i + 1}. {it.title ?? "Untitled place"}
-                                        </div>
-                                        {it.day_index != null && (
-                                            <span className="text-xs text-slate-600">
-                                                Day {it.day_index}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {it.address && (
-                                        <div className="text-xs text-slate-600">
-                                            {it.address}
-                                        </div>
-                                    )}
-                                    {(it.start_time || it.end_time) && (
-                                        <div className="text-xs text-slate-500 mt-1">
-                                            {it.start_time ?? "—"} – {it.end_time ?? "—"}
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ol>
-                    )}
-                </div>
-            </div>
-
-            {/* Cover preview + metadata */}
-            {trip?.cover && (
-                <div className="mt-6 rounded-2xl overflow-hidden shadow">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={trip.cover}
-                        alt="Trip cover"
-                        className="w-full max-h-[360px] object-cover"
-                    />
-                </div>
-            )}
-
-            {/* Expenses Tracker */}
-            <div className="mt-6">
-                <Expenses tripId={tripId} />
-            </div>
-
-        </main>
+            <Footer />
+        </div>
     );
 }
