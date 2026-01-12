@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Clock, MapPin, Utensils, Camera, Car, Hotel } from "lucide-react";
-import { mockActivities } from "@/utils/mockData";
+import { mockActivities, MockActivity } from "@/utils/mockData";
+import { getDaysDiff } from "@/utils/tripHelpers";
 
 const categoryIcons = {
   food: Utensils,
@@ -38,11 +39,9 @@ export default function PlannerTab({ tripId, startDate, endDate }: PlannerTabPro
     }
     acc[activity.day].push(activity);
     return acc;
-  }, {} as Record<number, typeof activities>);
+  }, {} as Record<number, MockActivity[]>);
 
-  const totalDays = Math.ceil(
-    (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)
-  ) + 1;
+  const totalDays = getDaysDiff(startDate, endDate);
 
   return (
     <div className="space-y-6">

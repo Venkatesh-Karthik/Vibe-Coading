@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Clock, CloudRain, Sun, Thermometer } from "lucide-react";
 import { MockTrip, mockActivities } from "@/utils/mockData";
+import { getDaysDiff } from "@/utils/tripHelpers";
 
 interface OverviewTabProps {
   trip: MockTrip;
@@ -221,10 +222,7 @@ export default function OverviewTab({ trip }: OverviewTabProps) {
         </div>
         <div className="glass-panel p-4 text-center">
           <div className="text-2xl font-bold gradient-text">
-            {Math.ceil(
-              (new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) /
-                (1000 * 60 * 60 * 24)
-            ) + 1}
+            {getDaysDiff(trip.startDate, trip.endDate)}
           </div>
           <div className="text-sm text-slate-600">Days</div>
         </div>

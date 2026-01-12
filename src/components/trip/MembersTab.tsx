@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { UserPlus, Mail, Copy, Check, Shield, Trash2 } from "lucide-react";
 import { mockUsers } from "@/utils/mockData";
+import { getOriginUrl } from "@/utils/tripHelpers";
 
 interface MembersTabProps {
   tripId: string;
@@ -23,8 +24,9 @@ export default function MembersTab({ tripId, tripCode }: MembersTabProps) {
   };
 
   const copyTripLink = () => {
-    if (typeof window === "undefined") return;
-    const link = `${window.location.origin}/join?code=${tripCode || ""}`;
+    const origin = getOriginUrl();
+    if (!origin) return;
+    const link = `${origin}/join?code=${tripCode || ""}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -75,7 +77,7 @@ export default function MembersTab({ tripId, tripCode }: MembersTabProps) {
               <div className="flex gap-3">
                 <input
                   type="text"
-                  value={`${typeof window !== "undefined" ? window.location.origin : ""}/join?code=${tripCode}`}
+                  value={`${getOriginUrl()}/join?code=${tripCode}`}
                   readOnly
                   className="flex-1 px-4 py-2 rounded-xl border border-white/40 bg-white/30 text-slate-600 text-sm"
                 />
