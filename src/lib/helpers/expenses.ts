@@ -2,6 +2,9 @@
  * Helper functions for expense calculations and settlement
  */
 
+// Tolerance for floating point comparison (approximately 1 cent)
+const BALANCE_TOLERANCE = 0.009
+
 export function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
@@ -23,9 +26,9 @@ export function calculateSettlement(balances: Record<string, number>): Transfer[
   
   // Separate into creditors (owed money) and debtors (owes money)
   for (const [userId, balance] of Object.entries(balances)) {
-    if (balance > 0.009) {
+    if (balance > BALANCE_TOLERANCE) {
       creditors.push([userId, balance])
-    } else if (balance < -0.009) {
+    } else if (balance < -BALANCE_TOLERANCE) {
       debtors.push([userId, balance])
     }
   }
@@ -57,8 +60,8 @@ export function calculateSettlement(balances: Record<string, number>): Transfer[
     debtors[j][1] = round2(debtorAmount + payment)
     
     // Move to next creditor/debtor if settled
-    if (creditors[i][1] <= 0.009) i++
-    if (debtors[j][1] >= -0.009) j++
+    if (creditors[i][1] <= BALANCE_TOLERANCE) i++
+    if (debtors[j][1] >= -BALANCE_TOLERANCE) j++
   }
   
   return transfers
