@@ -212,103 +212,112 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Dynamic Trip Planner Mock */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="glass-panel p-6"
-            >
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-sky-500" />
-                Day-wise Itinerary
-              </h3>
-              <div className="space-y-3">
-                {["Day 1: Arrival & Check-in", "Day 2: City Tour", "Day 3: Free Exploration"].map((day, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + i * 0.1 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/60 cursor-grab active:cursor-grabbing"
-                  >
-                    <div className="w-2 h-8 rounded-full bg-gradient-to-b from-sky-400 to-sky-500" />
-                    <span className="text-sm font-medium text-slate-700">{day}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+            <Link href="/organizer/itinerary">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="glass-panel p-6 cursor-pointer"
+              >
+                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-sky-500" />
+                  Day-wise Itinerary
+                </h3>
+                <div className="space-y-3">
+                  {["Day 1: Arrival & Check-in", "Day 2: City Tour", "Day 3: Free Exploration"].map((day, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 + i * 0.1 }}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-white/60"
+                    >
+                      <div className="w-2 h-8 rounded-full bg-gradient-to-b from-sky-400 to-sky-500" />
+                      <span className="text-sm font-medium text-slate-700">{day}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            </Link>
 
             {/* Expense Tracker Mock */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="glass-panel p-6"
-            >
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-emerald-500" />
-                Expense Tracker
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 rounded-xl bg-white/60">
-                  <span className="text-sm text-slate-700">John</span>
-                  <span className="text-sm font-semibold text-emerald-600">+₹2,500</span>
+            <Link href="/organizer/expenses">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="glass-panel p-6 cursor-pointer"
+              >
+                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-emerald-500" />
+                  Expense Tracker
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/60">
+                    <span className="text-sm text-slate-700">John</span>
+                    <span className="text-sm font-semibold text-emerald-600">+₹2,500</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/60">
+                    <span className="text-sm text-slate-700">Sarah</span>
+                    <span className="text-sm font-semibold text-rose-600">-₹1,200</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-white/60">
+                    <span className="text-sm text-slate-700">Mike</span>
+                    <span className="text-sm font-semibold text-rose-600">-₹1,300</span>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full mt-2 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-semibold"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    Settle Up
+                  </motion.button>
                 </div>
-                <div className="flex justify-between items-center p-3 rounded-xl bg-white/60">
-                  <span className="text-sm text-slate-700">Sarah</span>
-                  <span className="text-sm font-semibold text-rose-600">-₹1,200</span>
-                </div>
-                <div className="flex justify-between items-center p-3 rounded-xl bg-white/60">
-                  <span className="text-sm text-slate-700">Mike</span>
-                  <span className="text-sm font-semibold text-rose-600">-₹1,300</span>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full mt-2 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-semibold"
-                >
-                  Settle Up
-                </motion.button>
-              </div>
-            </motion.div>
+              </motion.div>
+            </Link>
 
             {/* Memory Wall Mock */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="glass-panel p-6"
-            >
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <Camera className="h-5 w-5 text-purple-500" />
-                Memory Wall
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3 + i * 0.05 }}
-                    whileHover={{ scale: 1.1, zIndex: 10 }}
-                    className="aspect-square rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-sky-400/20 to-purple-400/20" />
-                    {i === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Camera className="h-6 w-6 text-white/80" />
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-              <p className="mt-4 text-xs text-slate-500 text-center">
-                Relive your favorite group moments with shared galleries.
-              </p>
-            </motion.div>
+            <Link href="/organizer/memories">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="glass-panel p-6 cursor-pointer"
+              >
+                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <Camera className="h-5 w-5 text-purple-500" />
+                  Memory Wall
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3 + i * 0.05 }}
+                      className="aspect-square rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-sky-400/20 to-purple-400/20" />
+                      {i === 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Camera className="h-6 w-6 text-white/80" />
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs text-slate-500 text-center">
+                  Relive your favorite group moments with shared galleries.
+                </p>
+              </motion.div>
+            </Link>
           </div>
         </div>
       </section>
