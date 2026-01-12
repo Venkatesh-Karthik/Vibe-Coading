@@ -92,7 +92,7 @@ export default function Navbar() {
               <>
                 <NotificationBell />
                 <UserMenu
-                  user={{ name: user.displayName || user.email || "You", photo: user.photoURL || "" }}
+                  user={{ name: user.user_metadata?.name || user.email || "You", photo: user.user_metadata?.avatar_url || "" }}
                   onLogout={logout}
                 />
               </>
@@ -191,10 +191,10 @@ export default function Navbar() {
                     className="flex items-center justify-between gap-3 rounded-xl border border-white/30 bg-white/40 p-3 backdrop-blur-xl"
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar src={user.photoURL || ""} name={user.displayName || user.email || "You"} />
+                      <Avatar src={user.user_metadata?.avatar_url || ""} name={user.user_metadata?.name || user.email || "You"} />
                       <div>
                         <div className="text-sm font-semibold text-slate-900">
-                          {user.displayName || user.email || "You"}
+                          {user.user_metadata?.name || user.email || "You"}
                         </div>
                         <div className="text-xs text-slate-600">Organizer / Traveler</div>
                       </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth-context";
+import type { InsertUser, InsertTrip, InsertTripMember } from "@/types/database";
 
 function makeTripCode(len = 6) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -52,7 +53,7 @@ export default function NewTripPage() {
             name: user.user_metadata?.name || user.email || "Organizer",
             email: user.email,
             photo: user.user_metadata?.avatar_url || null,
-          });
+          } as any);
 
         if (userError) {
           console.error("Error creating user profile:", userError);
@@ -69,7 +70,7 @@ export default function NewTripPage() {
           end_date: endDate,
           organizer_id: user.id,
           join_code: tripCode,
-        })
+        } as any)
         .select()
         .single();
 
@@ -79,20 +80,28 @@ export default function NewTripPage() {
         return;
       }
 
+      if (!trip) {
+        console.error("No trip data returned");
+        alert("Failed to create trip. Please try again.");
+        return;
+      }
+
+      const tripId = (trip as any).id;
+
       // Add organizer as a trip member
       const { error: memberError } = await supabase
         .from('trip_members')
         .insert({
-          trip_id: trip.id,
+          trip_id: tripId,
           user_id: user.id,
           role: 'organizer',
-        });
+        } as any);
 
       if (memberError) {
         console.error("Error adding organizer as member:", memberError);
       }
 
-      router.push(`/trip/${trip.id}`);
+      router.push(`/trip/${tripId}`);
     } catch (error) {
       console.error("Error creating trip:", error);
       alert("Failed to create trip. Please try again.");

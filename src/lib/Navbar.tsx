@@ -16,7 +16,7 @@ export default function Navbar() {
           <span>Loading...</span>
         ) : user ? (
           <>
-            <span className="mr-4">Hi, {user.displayName}</span>
+            <span className="mr-4">Hi, {user.user_metadata?.name || user.email || "User"}</span>
             <button
               onClick={logout}
               className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"

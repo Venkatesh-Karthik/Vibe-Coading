@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import type { InsertItineraryDay, InsertActivity } from "@/types/database";
 
 import {
   useJsApiLoader,
@@ -137,7 +138,7 @@ export default function OrganizerEditorPage() {
       }
 
       // Get activities for all days
-      const dayIds = days.map(d => d.id);
+      const dayIds = (days as any[]).map((d: any) => d.id);
       const { data: activities, error: activitiesError } = await supabase
         .from('activities')
         .select('*')
@@ -151,8 +152,8 @@ export default function OrganizerEditorPage() {
       }
 
       // Map activities to items format
-      const mappedItems: Item[] = (activities || []).map((activity, idx) => {
-        const day = days.find(d => d.id === activity.day_id);
+      const mappedItems: Item[] = ((activities || []) as any[]).map((activity: any, idx: number) => {
+        const day = (days as any[]).find((d: any) => d.id === activity.day_id);
         return {
           id: activity.id,
           title: activity.title,
@@ -205,7 +206,7 @@ export default function OrganizerEditorPage() {
           .insert({
             trip_id: tripId,
             day_number: day,
-          })
+          } as any)
           .select()
           .single();
 
@@ -213,19 +214,29 @@ export default function OrganizerEditorPage() {
           console.error('Error creating itinerary day:', createError);
           return;
         }
+        if (!newDay) {
+          console.error('Failed to create itinerary day - no data returned');
+          return;
+        }
         existingDay = newDay;
       }
 
+      if (!existingDay) {
+        console.error('No itinerary day available');
+        return;
+      }
+
       // Add activity
+      const dayId = (existingDay as any).id;
       const { error: activityError } = await supabase
         .from('activities')
         .insert({
-          day_id: existingDay.id,
+          day_id: dayId,
           title: p.name,
           location: p.formatted_address ?? null,
           lat: loc.lat(),
           lng: loc.lng(),
-        });
+        } as any);
 
       if (activityError) {
         console.error('Error creating activity:', activityError);

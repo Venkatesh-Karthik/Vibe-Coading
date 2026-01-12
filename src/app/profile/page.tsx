@@ -72,17 +72,17 @@ export default function ProfilePage() {
               {/* Profile Photo */}
               <div className="relative group">
                 <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white/40">
-                  {user.photoURL ? (
+                  {user.user_metadata?.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={user.photoURL}
-                      alt={user.displayName || "User"}
+                      src={user.user_metadata.avatar_url}
+                      alt={user.user_metadata?.name || user.email || "User"}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-sky-200 to-emerald-200 flex items-center justify-center text-4xl font-bold text-slate-700">
-                      {(user.displayName || user.email || "U")[0].toUpperCase()}
+                      {(user.user_metadata?.name || user.email || "U")[0].toUpperCase()}
                     </div>
                   )}
                 </div>
@@ -99,7 +99,7 @@ export default function ProfilePage() {
               <div className="flex-1 text-center md:text-left">
                 <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
                   <h1 className="text-3xl font-bold text-slate-900">
-                    {user.displayName || "Traveler"}
+                    {user.user_metadata?.name || user.email || "Traveler"}
                   </h1>
                   <motion.button
                     whileHover={{ scale: 1.1 }}

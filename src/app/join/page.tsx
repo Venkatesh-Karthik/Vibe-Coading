@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Calendar, MapPin, Users, CheckCircle } from "lucide-react";
 import Footer from "../../components/Footer";
 import { mockTrips } from "../../utils/mockData";
+import type { InsertUser, InsertTripMember } from "@/types/database";
 
 export default function JoinByCodePage() {
   const { user } = useAuth();
@@ -42,7 +43,17 @@ export default function JoinByCodePage() {
         .from('trips')
         .select('*')
         .eq('join_code', clean)
-        .limit(1);
+        .limit(1)
+        .returns<Array<{
+          id: string;
+          title: string;
+          destination: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          organizer_id: string | null;
+          join_code: string | null;
+          created_at: string;
+        }>>();
 
       if (error) {
         console.error("Error searching trip:", error);
@@ -117,7 +128,7 @@ export default function JoinByCodePage() {
             name: user.user_metadata?.name || user.email || "Traveler",
             email: user.email,
             photo: user.user_metadata?.avatar_url || null,
-          });
+          } as any);
 
         if (userError) {
           console.error("Error creating user profile:", userError);
@@ -131,7 +142,7 @@ export default function JoinByCodePage() {
           trip_id: previewTrip.id,
           user_id: user.id,
           role: 'member',
-        });
+        } as any);
 
       if (memberError) {
         if (memberError.code === '23505') {
