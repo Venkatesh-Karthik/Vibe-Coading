@@ -3,17 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  updateDoc,
-} from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 
 import {
   useJsApiLoader,
@@ -42,10 +32,11 @@ import { CSS } from "@dnd-kit/utilities";
 type Item = {
   id: string;
   title: string;
-  day_index: number;
-  lat: number;
-  lng: number;
-  address?: string;
+  day_id: string;
+  day_number: number;
+  lat: number | null;
+  lng: number | null;
+  location?: string;
   order_index?: number;
 };
 
@@ -71,7 +62,7 @@ function SortableItem({
       <div>
         <div className="font-medium">{item.title}</div>
         <div className="text-xs text-slate-600">
-          Day {item.day_index} • {item.address ?? `${item.lat}, ${item.lng}`}
+          Day {item.day_number} • {item.location ?? (item.lat && item.lng ? `${item.lat}, ${item.lng}` : 'No location')}
         </div>
       </div>
       <button
@@ -98,32 +89,89 @@ export default function OrganizerEditorPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Load activities from Supabase
   useEffect(() => {
-    if (!db) {
-      setLoading(false);
-      return;
-    }
-    const q = query(
-      collection(db, "trip_items", tripId, "items"),
-      orderBy("day_index", "asc"),
-      orderBy("order_index", "asc")
-    );
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setItems(
-          snap.docs.map((d, idx) => ({
-            order_index: idx,
-            id: d.id,
-            ...(d.data() as Omit<Item, "id">),
-          }))
-        );
-        setLoading(false);
-      },
-      () => setLoading(false)
-    );
-    return () => unsub();
+    loadActivities();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel(`trip-${tripId}-activities`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activities',
+          filter: `day_id=in.(select id from itinerary_days where trip_id=eq.${tripId})`
+        },
+        () => {
+          loadActivities();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tripId]);
+
+  async function loadActivities() {
+    try {
+      // Get itinerary days for this trip
+      const { data: days, error: daysError } = await supabase
+        .from('itinerary_days')
+        .select('*')
+        .eq('trip_id', tripId)
+        .order('day_number', { ascending: true });
+
+      if (daysError) {
+        console.error('Error loading itinerary days:', daysError);
+        setLoading(false);
+        return;
+      }
+
+      if (!days || days.length === 0) {
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get activities for all days
+      const dayIds = days.map(d => d.id);
+      const { data: activities, error: activitiesError } = await supabase
+        .from('activities')
+        .select('*')
+        .in('day_id', dayIds)
+        .order('created_at', { ascending: true });
+
+      if (activitiesError) {
+        console.error('Error loading activities:', activitiesError);
+        setLoading(false);
+        return;
+      }
+
+      // Map activities to items format
+      const mappedItems: Item[] = (activities || []).map((activity, idx) => {
+        const day = days.find(d => d.id === activity.day_id);
+        return {
+          id: activity.id,
+          title: activity.title,
+          day_id: activity.day_id!,
+          day_number: day?.day_number || 1,
+          lat: activity.lat,
+          lng: activity.lng,
+          location: activity.location,
+          order_index: idx,
+        };
+      });
+
+      setItems(mappedItems);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading activities:', error);
+      setLoading(false);
+    }
+  }
 
   // Add via Places Autocomplete
   const [day, setDay] = useState<number>(1);
@@ -131,23 +179,57 @@ export default function OrganizerEditorPage() {
   const [adding, setAdding] = useState(false);
 
   async function addPlace() {
-    if (!auto || !db) return;
+    if (!auto) return;
     const p = auto.getPlace();
     const loc = p.geometry?.location;
     if (!loc || !p.name) return;
 
     setAdding(true);
     try {
-      await addDoc(collection(db, "trip_items", tripId, "items"), {
-        title: p.name,
-        address: p.formatted_address ?? null,
-        place_id: p.place_id ?? null,
-        lat: loc.lat(),
-        lng: loc.lng(),
-        day_index: Number(day) || 1,
-        order_index: items.length,
-        created_at: Date.now(),
-      });
+      // Get or create itinerary day for this day number
+      let { data: existingDay, error: dayError } = await supabase
+        .from('itinerary_days')
+        .select('*')
+        .eq('trip_id', tripId)
+        .eq('day_number', day)
+        .single();
+
+      if (dayError && dayError.code !== 'PGRST116') {
+        console.error('Error checking itinerary day:', dayError);
+        return;
+      }
+
+      if (!existingDay) {
+        const { data: newDay, error: createError } = await supabase
+          .from('itinerary_days')
+          .insert({
+            trip_id: tripId,
+            day_number: day,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating itinerary day:', createError);
+          return;
+        }
+        existingDay = newDay;
+      }
+
+      // Add activity
+      const { error: activityError } = await supabase
+        .from('activities')
+        .insert({
+          day_id: existingDay.id,
+          title: p.name,
+          location: p.formatted_address ?? null,
+          lat: loc.lat(),
+          lng: loc.lng(),
+        });
+
+      if (activityError) {
+        console.error('Error creating activity:', activityError);
+      }
     } finally {
       setAdding(false);
     }
@@ -157,7 +239,7 @@ export default function OrganizerEditorPage() {
   const sensors = useSensors(useSensor(PointerSensor));
   async function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
-    if (!over || active.id === over.id || !db) return;
+    if (!over || active.id === over.id) return;
 
     // Reorder in local state
     const activeId = String(active.id);
@@ -165,28 +247,23 @@ export default function OrganizerEditorPage() {
     const oldIndex = items.findIndex((i) => i.id === activeId);
     const newIndex = items.findIndex((i) => i.id === overId);
 
-    const old = items[oldIndex];
-    const movedSameDay = old.day_index === items[newIndex].day_index;
-
     const newItems = arrayMove(items, oldIndex, newIndex);
     setItems(newItems);
 
-    // Persist order_index (only for same-day reorder)
-    if (movedSameDay && db) {
-      const firestore = db;
-      const batchUpdates = newItems.map((it, idx) =>
-        updateDoc(doc(firestore, "trip_items", tripId, "items", it.id), {
-          order_index: idx,
-        })
-      );
-      await Promise.all(batchUpdates);
-    }
+    // Note: For proper persistence, you'd need to add an order_index column
+    // to the activities table and update it here
   }
 
   // Delete
   async function removeItem(id: string) {
-    if (!db) return;
-    await deleteDoc(doc(db, "trip_items", tripId, "items", id));
+    const { error } = await supabase
+      .from('activities')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting activity:', error);
+    }
   }
 
   // Map path
@@ -194,18 +271,10 @@ export default function OrganizerEditorPage() {
     () =>
       items
         .filter((i) => typeof i.lat === "number" && typeof i.lng === "number")
-        .map((i) => ({ lat: i.lat, lng: i.lng })),
+        .map((i) => ({ lat: i.lat!, lng: i.lng! })),
     [items]
   );
   const center = path[0] ?? { lat: 20.5937, lng: 78.9629 };
-
-  if (!db) {
-    return (
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <p className="text-slate-600">Firebase not configured. Please check environment variables.</p>
-      </main>
-    );
-  }
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">

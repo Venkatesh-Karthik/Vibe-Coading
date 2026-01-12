@@ -40,6 +40,7 @@ create table trips (
   start_date date,
   end_date date,
   organizer_id uuid references users(id),
+  join_code text unique,
   created_at timestamp with time zone default now()
 );
 

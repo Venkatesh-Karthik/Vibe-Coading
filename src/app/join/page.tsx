@@ -3,16 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import {
-  collection,
-  doc,
-  getDocs,
-  query,
-  setDoc,
-  where,
-} from "firebase/firestore";
 import { Calendar, MapPin, Users, CheckCircle } from "lucide-react";
 import Footer from "../../components/Footer";
 import { mockTrips } from "../../utils/mockData";
@@ -45,37 +37,45 @@ export default function JoinByCodePage() {
         return;
       }
 
-      // Then try Firebase if available
-      if (!db) {
-        setMsg("No trip found for that code.");
-        setBusy(false);
+      // Query Supabase for trip with matching join_code
+      const { data: trips, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('join_code', clean)
+        .limit(1);
+
+      if (error) {
+        console.error("Error searching trip:", error);
+        setMsg("Failed to search trip. Please try again.");
         return;
       }
 
-      const tripsQ = query(
-        collection(db, "trips"),
-        where("trip_code", "==", clean)
-      );
-      const snap = await getDocs(tripsQ);
-      if (snap.empty) {
+      if (!trips || trips.length === 0) {
         setMsg("No trip found for that code.");
         return;
       }
       
-      const tripData = snap.docs[0].data();
+      const tripData = trips[0];
+      
+      // Get trip members count
+      const { count } = await supabase
+        .from('trip_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('trip_id', tripData.id);
+
       setPreviewTrip({
-        id: snap.docs[0].id,
+        id: tripData.id,
         name: tripData.title || "Trip",
         destination: tripData.destination || "Unknown",
-        startDate: tripData.startDate || "",
-        endDate: tripData.endDate || "",
-        coverImage: tripData.cover || "",
-        travelers: tripData.members?.length || 0,
+        startDate: tripData.start_date || "",
+        endDate: tripData.end_date || "",
+        coverImage: "",
+        travelers: (count || 0) + 1, // +1 for organizer
         status: "planning",
         type: [],
-        budget: tripData.baseCost || 0,
-        organizer: tripData.ownerName || "Organizer",
-        organizerId: tripData.ownerId || "",
+        budget: 0,
+        organizer: "Organizer",
+        organizerId: tripData.organizer_id || "",
         description: "",
         isPublic: true,
         tripCode: clean,
@@ -101,20 +101,47 @@ export default function JoinByCodePage() {
 
     setBusy(true);
     try {
-      if (db) {
-        const memberRef = doc(db, "participants", previewTrip.id, "users", user.uid);
-        await setDoc(
-          memberRef,
-          {
-            user_id: user.uid,
-            display_name: user.displayName || user.email || "Traveler",
-            photo_url: user.photoURL || null,
-            role: "traveler",
-            status: "approved",
-            joined_at: Date.now(),
-          },
-          { merge: true }
-        );
+      // First, ensure user profile exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (!existingUser) {
+        // Create user profile if it doesn't exist
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            name: user.user_metadata?.name || user.email || "Traveler",
+            email: user.email,
+            photo: user.user_metadata?.avatar_url || null,
+          });
+
+        if (userError) {
+          console.error("Error creating user profile:", userError);
+        }
+      }
+
+      // Add user to trip_members
+      const { error: memberError } = await supabase
+        .from('trip_members')
+        .insert({
+          trip_id: previewTrip.id,
+          user_id: user.id,
+          role: 'member',
+        });
+
+      if (memberError) {
+        if (memberError.code === '23505') {
+          // Unique constraint violation - already a member
+          setMsg("You are already a member of this trip!");
+        } else {
+          console.error("Error joining trip:", memberError);
+          setMsg("Failed to join trip. Please try again.");
+        }
+        return;
       }
       
       setJoinSuccess(true);

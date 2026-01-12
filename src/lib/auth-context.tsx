@@ -1,15 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
-import { auth, googleProvider } from "./firebase";
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  User,
-  signOut,
-} from "firebase/auth";
+import { supabase } from "./supabase";
+import type { User } from "@supabase/supabase-js";
 
 type AuthCtx = {
   user: User | null;
@@ -32,58 +25,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authing, setAuthing] = useState(false);
 
-  // Complete redirect flow if we came back from signInWithRedirect
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-    (async () => {
-      try {
-        await getRedirectResult(auth);
-      } catch (err) {
-        console.warn("Redirect result error:", err);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
-    return () => unsub();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   async function loginWithGoogle() {
-    if (!auth) {
-      console.warn("Firebase auth not initialized. Check environment variables.");
-      return;
-    }
     if (authing) return;
     setAuthing(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (e: unknown) {
-      const error = e as { code?: string };
-      const code = error?.code || "";
-      if (code === "auth/popup-blocked" || code === "auth/cancelled-popup-request") {
-        await signInWithRedirect(auth, googleProvider);
-      } else {
-        console.warn("Google login failed:", e);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        console.warn("Google login failed:", error);
       }
+    } catch (e) {
+      console.warn("Google login failed:", e);
     } finally {
       setAuthing(false);
     }
   }
 
   async function logout() {
-    if (!auth) return;
-    await signOut(auth);
+    await supabase.auth.signOut();
   }
 
   const value = useMemo(
