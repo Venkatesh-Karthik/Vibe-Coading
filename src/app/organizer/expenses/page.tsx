@@ -525,7 +525,7 @@ export default function ExpensesDashboard() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `₹${value}`} />
+                  <Tooltip formatter={(value) => `₹${value}`} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
