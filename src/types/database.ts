@@ -40,6 +40,7 @@ export interface Database {
           start_date: string | null
           end_date: string | null
           organizer_id: string | null
+          join_code: string | null
           created_at: string
         }
         Insert: {
@@ -49,6 +50,7 @@ export interface Database {
           start_date?: string | null
           end_date?: string | null
           organizer_id?: string | null
+          join_code?: string | null
           created_at?: string
         }
         Update: {
@@ -58,6 +60,7 @@ export interface Database {
           start_date?: string | null
           end_date?: string | null
           organizer_id?: string | null
+          join_code?: string | null
           created_at?: string
         }
       }

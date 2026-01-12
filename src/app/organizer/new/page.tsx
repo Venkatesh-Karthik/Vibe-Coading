@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
+import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth-context";
 
 function makeTripCode(len = 6) {
@@ -27,10 +26,6 @@ export default function NewTripPage() {
   async function createTrip(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    if (!db) {
-      alert("Firebase not configured. Please check environment variables.");
-      return;
-    }
 
     if (!title.trim() || !destination.trim() || !startDate || !endDate) {
       alert("Please fill all required fields.");
@@ -40,30 +35,67 @@ export default function NewTripPage() {
     setSaving(true);
     try {
       const tripCode = makeTripCode();
-      const docRef = await addDoc(collection(db, "trips"), {
-        title: title.trim(),
-        destination: destination.trim(),
-        startDate,
-        endDate,
-        baseCost: baseCost === "" ? null : Number(baseCost),
-        code: tripCode,
-        ownerId: user.uid,
-        ownerName: user.displayName || user.email || "Organizer",
-        members: [
-          {
-            uid: user.uid,
-            name: user.displayName || user.email || "Organizer",
-            role: "organizer",
-            joinedAt: serverTimestamp(),
-          },
-        ],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        analytics: { participants: 1, revenue: 0, ratings: [] as number[] },
-        itinerary: [],
-      });
+      
+      // First, ensure user profile exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
 
-      router.push(`/trip/${docRef.id}`);
+      if (!existingUser) {
+        // Create user profile if it doesn't exist
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            name: user.user_metadata?.name || user.email || "Organizer",
+            email: user.email,
+            photo: user.user_metadata?.avatar_url || null,
+          });
+
+        if (userError) {
+          console.error("Error creating user profile:", userError);
+        }
+      }
+
+      // Create trip
+      const { data: trip, error: tripError } = await supabase
+        .from('trips')
+        .insert({
+          title: title.trim(),
+          destination: destination.trim(),
+          start_date: startDate,
+          end_date: endDate,
+          organizer_id: user.id,
+          join_code: tripCode,
+        })
+        .select()
+        .single();
+
+      if (tripError) {
+        console.error("Error creating trip:", tripError);
+        alert("Failed to create trip. Please try again.");
+        return;
+      }
+
+      // Add organizer as a trip member
+      const { error: memberError } = await supabase
+        .from('trip_members')
+        .insert({
+          trip_id: trip.id,
+          user_id: user.id,
+          role: 'organizer',
+        });
+
+      if (memberError) {
+        console.error("Error adding organizer as member:", memberError);
+      }
+
+      router.push(`/trip/${trip.id}`);
+    } catch (error) {
+      console.error("Error creating trip:", error);
+      alert("Failed to create trip. Please try again.");
     } finally {
       setSaving(false);
     }
