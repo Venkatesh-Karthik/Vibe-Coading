@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Clock, DollarSign, MapPin, Utensils, Camera, Car, Hotel } from "lucide-react";
+import { Plus, Clock, DollarSign, MapPin, Utensils, Camera, Car, Hotel, Loader2 } from "lucide-react";
 import Footer from "@/components/Footer";
-import { mockActivities, getTripById } from "@/utils/mockData";
+import { supabase } from "@/lib/supabase";
+import { getTripById } from "@/lib/trips";
+import type { Trip, ItineraryDay, Activity } from "@/types/database";
+
+type DayWithActivities = ItineraryDay & {
+  activities: Activity[];
+};
 
 const categoryIcons = {
   food: Utensils,
@@ -26,34 +32,95 @@ const categoryColors = {
 
 export default function ItineraryPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const tripId = params?.id;
-  const trip = tripId ? getTripById(tripId) : null;
 
-  const [activities] = useState(mockActivities);
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [days, setDays] = useState<DayWithActivities[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(1);
 
-  // Group activities by day
-  const activitiesByDay = activities.reduce((acc, activity) => {
-    if (!acc[activity.day]) {
-      acc[activity.day] = [];
-    }
-    acc[activity.day].push(activity);
-    return acc;
-  }, {} as Record<number, typeof activities>);
+  useEffect(() => {
+    async function fetchData() {
+      if (!tripId) return;
 
-  const totalDays = trip 
-    ? Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+      setLoading(true);
+      try {
+        // Fetch trip data
+        const { data: tripData, error: tripError } = await getTripById(tripId);
+        if (tripError || !tripData) {
+          console.error("Error fetching trip:", tripError);
+          setTrip(null);
+          setLoading(false);
+          return;
+        }
+        setTrip(tripData);
+
+        // Fetch itinerary days with activities
+        const { data: daysData, error: daysError } = await supabase
+          .from("itinerary_days")
+          .select(`
+            *,
+            activities (*)
+          `)
+          .eq("trip_id", tripId)
+          .order("day_number", { ascending: true });
+
+        if (daysError) {
+          console.error("Error fetching itinerary days:", daysError);
+          setDays([]);
+        } else {
+          setDays((daysData as any) || []);
+        }
+      } catch (err) {
+        console.error("Error loading data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [tripId]);
+
+  const totalDays = trip?.start_date && trip?.end_date
+    ? Math.ceil((new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1
     : 5;
 
-  if (!trip) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-24">
         <div className="glass-panel p-8">
-          <p className="text-slate-600">Trip not found</p>
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-sky-500" />
+            <span className="text-slate-600">Loading itinerary...</span>
+          </div>
         </div>
       </div>
     );
   }
+
+  if (!trip) {
+    return (
+      <div className="min-h-screen flex items-center justify-center pt-24">
+        <div className="glass-panel p-8 text-center">
+          <p className="text-slate-600 mb-4">Trip not found</p>
+          <button onClick={() => router.push("/explore")} className="btn-secondary">
+            Back to Explore
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Group activities by day number
+  const activitiesByDay: Record<number, Activity[]> = {};
+  days.forEach((day) => {
+    activitiesByDay[day.day_number] = day.activities || [];
+  });
+
+  // Calculate total activities and cost
+  const allActivities = days.flatMap((d) => d.activities || []);
+  const totalCost = allActivities.reduce((sum, a) => sum + (a.cost || 0), 0);
 
   return (
     <div className="min-h-screen flex flex-col pt-24">
@@ -149,8 +216,10 @@ export default function ItineraryPage() {
             {activitiesByDay[selectedDay] && activitiesByDay[selectedDay].length > 0 ? (
               <div className="space-y-4">
                 {activitiesByDay[selectedDay].map((activity, index) => {
-                  const Icon = categoryIcons[activity.category];
-                  const colorClass = categoryColors[activity.category];
+                  // Try to map activity title/notes to a category, default to 'activity'
+                  const category = 'activity';
+                  const Icon = categoryIcons[category];
+                  const colorClass = categoryColors[category];
                   
                   return (
                     <motion.div
@@ -173,57 +242,36 @@ export default function ItineraryPage() {
                               <h3 className="text-lg font-semibold text-slate-900">
                                 {activity.title}
                               </h3>
-                              <div className="flex items-center gap-2 text-sm text-slate-600 mt-1">
-                                <MapPin className="h-4 w-4" />
-                                <span>{activity.location}</span>
-                              </div>
+                              {activity.location && (
+                                <div className="flex items-center gap-2 text-sm text-slate-600 mt-1">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{activity.location}</span>
+                                </div>
+                              )}
                             </div>
                             <div className="text-right">
-                              <div className="text-sm font-semibold text-slate-900">
-                                ₹{activity.cost}
-                              </div>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-white/60 text-slate-700 capitalize">
-                                {activity.category}
-                              </span>
+                              {activity.cost !== null && (
+                                <div className="text-sm font-semibold text-slate-900">
+                                  ₹{activity.cost}
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4 text-sm text-slate-600 mb-3">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              <span>{activity.startTime} - {activity.endTime}</span>
+                          {activity.time && (
+                            <div className="flex items-center gap-4 text-sm text-slate-600 mb-3">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                <span>{activity.time}</span>
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {activity.notes && (
                             <p className="text-sm text-slate-600 bg-white/40 rounded-lg p-3">
                               {activity.notes}
                             </p>
                           )}
-
-                          <div className="mt-4 flex gap-2">
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-white/60 hover:bg-white/80 font-medium text-slate-700 transition"
-                            >
-                              Edit
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-white/60 hover:bg-white/80 font-medium text-slate-700 transition"
-                            >
-                              View on Map
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="text-xs px-3 py-1.5 rounded-lg hover:bg-red-50 font-medium text-red-600 transition"
-                            >
-                              Delete
-                            </motion.button>
-                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -256,12 +304,12 @@ export default function ItineraryPage() {
             className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4"
           >
             <div className="glass-panel p-4 text-center">
-              <div className="text-2xl font-bold gradient-text">{activities.length}</div>
+              <div className="text-2xl font-bold gradient-text">{allActivities.length}</div>
               <div className="text-sm text-slate-600">Total Activities</div>
             </div>
             <div className="glass-panel p-4 text-center">
               <div className="text-2xl font-bold gradient-text">
-                ₹{activities.reduce((sum, a) => sum + a.cost, 0)}
+                ₹{totalCost.toLocaleString()}
               </div>
               <div className="text-sm text-slate-600">Total Cost</div>
             </div>
@@ -271,7 +319,7 @@ export default function ItineraryPage() {
             </div>
             <div className="glass-panel p-4 text-center">
               <div className="text-2xl font-bold gradient-text">
-                {Object.keys(activitiesByDay).length}
+                {days.length}
               </div>
               <div className="text-sm text-slate-600">Planned Days</div>
             </div>
