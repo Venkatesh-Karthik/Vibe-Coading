@@ -10,9 +10,23 @@ A beautiful, glassmorphism-styled group trip planner with Supabase backend for r
 - 📅 **Dynamic Trip Planner** - Real-time collaborative itinerary planning
 - 💰 **Collaborative Expenses** - Split costs and settle up with automatic calculations
 - 📸 **Memory Wall** - Upload and share photos/videos with cloud storage
+- 🌤️ **Weather Integration** - Real-time weather data for destinations (OpenWeather API)
+- 🔗 **Smart Trip Sharing** - Copy/share trip codes via email or native share
+- 👥 **Interactive Trip Dashboard** - Click to explore destination, itinerary, members
 - 📱 **Fully Responsive** - Works beautifully on mobile and desktop
 - ⚡ **Smooth Animations** - Powered by Framer Motion
 - 🔄 **Real-time Updates** - Live collaboration with Supabase Realtime
+
+### New: Interactive Trip Dashboard Header
+
+The trip dashboard header now features fully interactive elements:
+
+- **Clickable Destination**: Opens a dedicated page with map, weather, and local info
+- **Clickable Date Range**: Navigates to the full itinerary with day-by-day activities
+- **Clickable Travelers**: Shows members page with invite functionality
+- **Share Button**: Opens modal for easy trip code and link sharing
+
+See [TRIP_HEADER_UPGRADE.md](./TRIP_HEADER_UPGRADE.md) for detailed documentation.
 
 ## Tech Stack
 
@@ -46,17 +60,15 @@ A beautiful, glassmorphism-styled group trip planner with Supabase backend for r
 
 3. Create a `.env.local` file in the root directory with your Supabase configuration:
    ```env
-   # Supabase Configuration
+   # Supabase Configuration (REQUIRED)
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-   # Legacy Firebase (Optional - being deprecated)
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+   # OpenWeather API Key (OPTIONAL - for weather features)
+   NEXT_PUBLIC_OPENWEATHER_API_KEY=your_openweather_api_key
+
+   # Google Maps API Key (OPTIONAL - for maps)
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
    ```
 
 4. Set up Supabase:
@@ -95,6 +107,7 @@ A beautiful, glassmorphism-styled group trip planner with Supabase backend for r
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run type-check` - Run TypeScript type checking
+- `./test-trip-header.sh` - Test trip header upgrade features
 
 ## Deploying to Vercel
 
@@ -124,11 +137,20 @@ TripMosaic+ /
  │   │   ├─ join/            # Join trip with code
  │   │   ├─ organizer/       # Trip organizer pages (real Supabase data)
  │   │   └─ trip/            # Trip detail pages (real Supabase data)
+ │   │       └─ [id]/
+ │   │           ├─ page.tsx           # Main trip dashboard
+ │   │           ├─ destination/       # NEW: Destination details page
+ │   │           ├─ itinerary/         # Itinerary page (updated)
+ │   │           ├─ members/           # Members page (updated)
+ │   │           ├─ memories/          # Trip memories
+ │   │           └─ budget/            # Budget management
  │   ├─ components/
  │   │   ├─ Navbar.tsx       # Glassmorphism navbar
  │   │   ├─ trip/
- │   │   │   ├─ TripCard.tsx # Trip card component (uses real data)
- │   │   │   └─ ...          # Other trip components
+ │   │   │   ├─ TripCard.tsx       # Trip card component (uses real data)
+ │   │   │   ├─ TripHeader.tsx     # Interactive trip header (updated)
+ │   │   │   ├─ ShareTripModal.tsx # NEW: Trip sharing modal
+ │   │   │   └─ ...                # Other trip components
  │   │   ├─ DestinationCard.tsx
  │   │   ├─ FeatureCard.tsx
  │   │   ├─ Footer.tsx
@@ -136,6 +158,7 @@ TripMosaic+ /
  │   ├─ lib/
  │   │   ├─ supabase.ts      # Supabase client
  │   │   ├─ trips.ts         # Trip data service layer
+ │   │   ├─ weather.ts       # NEW: Weather API service with caching
  │   │   ├─ auth.tsx         # Auth context
  │   │   ├─ helpers/
  │   │   │   ├─ expenses.ts  # Expense calculations
@@ -151,6 +174,8 @@ TripMosaic+ /
  │   └─ migrations/          # Database migrations
  ├─ .env.local               # Environment variables (create this)
  ├─ .env.example             # Example environment variables
+ ├─ TRIP_HEADER_UPGRADE.md  # NEW: Trip header feature documentation
+ ├─ test-trip-header.sh     # NEW: Test script for header features
  ├─ tailwind.config.js
  ├─ next.config.mjs
  ├─ package.json
