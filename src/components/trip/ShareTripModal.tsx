@@ -180,7 +180,7 @@ export default function ShareTripModal({
                   Share via Email
                 </motion.button>
 
-                {navigator.share && (
+                {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
