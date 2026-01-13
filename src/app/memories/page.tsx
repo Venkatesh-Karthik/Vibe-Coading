@@ -15,7 +15,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useSupabaseAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import { uploadMemory, validateFile, getFileType } from "@/lib/helpers/storage";
 import type { Memory as MemoryType } from "@/types/database";
 
@@ -37,7 +37,7 @@ const GRADIENTS = [
 ];
 
 export default function MemoryWallPage() {
-  const { user } = useSupabaseAuth();
+  const { user } = useAuth();
   const [memories, setMemories] = useState<MemoryWithUploader[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);

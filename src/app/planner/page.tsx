@@ -16,7 +16,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useSupabaseAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import type { Activity, ItineraryDay } from "@/types/database";
 
 interface DayWithActivities extends ItineraryDay {
@@ -35,7 +35,7 @@ interface Message {
 const MOCK_TRIP_ID = "demo-trip-123";
 
 export default function DynamicPlannerPage() {
-  const { user } = useSupabaseAuth();
+  const { user } = useAuth();
   const [days, setDays] = useState<DayWithActivities[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
