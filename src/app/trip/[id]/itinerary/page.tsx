@@ -70,7 +70,8 @@ export default function ItineraryPage() {
           console.error("Error fetching itinerary days:", daysError);
           setDays([]);
         } else {
-          setDays((daysData as any) || []);
+          // Type cast is safe here because we're selecting with a join
+          setDays((daysData || []) as DayWithActivities[]);
         }
       } catch (err) {
         console.error("Error loading data:", err);
@@ -216,8 +217,8 @@ export default function ItineraryPage() {
             {activitiesByDay[selectedDay] && activitiesByDay[selectedDay].length > 0 ? (
               <div className="space-y-4">
                 {activitiesByDay[selectedDay].map((activity, index) => {
-                  // Try to map activity title/notes to a category, default to 'activity'
-                  const category = 'activity';
+                  // Use default 'activity' category - in future could be enhanced with category detection
+                  const category: keyof typeof categoryIcons = 'activity';
                   const Icon = categoryIcons[category];
                   const colorClass = categoryColors[category];
                   
