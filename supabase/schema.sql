@@ -39,6 +39,11 @@ create table trips (
   destination text,
   start_date date,
   end_date date,
+  status text check (status in ('planning', 'active', 'completed')) default 'planning',
+  description text,
+  is_public boolean default false,
+  budget numeric default 0,
+  cover_image text,
   organizer_id uuid references users(id),
   join_code text unique,
   created_at timestamp with time zone default now()
@@ -47,9 +52,10 @@ create table trips (
 -- RLS Policies for trips
 alter table trips enable row level security;
 
-create policy "Users can read trips they are members of"
+create policy "Users can read trips they are members of or public trips"
   on trips for select
   using (
+    is_public = true or
     auth.uid() = organizer_id or
     exists (
       select 1 from trip_members

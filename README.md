@@ -154,7 +154,19 @@ TripMosaic+ /
 The application uses the following Supabase tables:
 
 - **users** - User profiles
-- **trips** - Trip information
+- **trips** - Trip information with the following key fields:
+  - `id` (uuid) - Unique trip identifier
+  - `title` (text) - Name of the trip
+  - `destination` (text) - Trip destination
+  - `start_date` (date) - Trip start date
+  - `end_date` (date) - Trip end date
+  - `status` (text) - Trip status: `'planning'`, `'active'`, or `'completed'`
+  - `description` (text) - Trip description
+  - `is_public` (boolean) - Whether the trip is visible in the explore page
+  - `budget` (numeric) - Estimated or total budget for the trip
+  - `cover_image` (text) - URL to trip cover image
+  - `organizer_id` (uuid) - Reference to the user who created the trip
+  - `join_code` (text) - Unique code for others to join the trip
 - **trip_members** - Trip memberships
 - **itinerary_days** - Daily itinerary entries
 - **activities** - Activities within itinerary days
@@ -163,6 +175,21 @@ The application uses the following Supabase tables:
 - **memories** - Photos and videos
 
 All tables have Row Level Security (RLS) enabled. See `supabase/schema.sql` for complete schema and policies.
+
+### Trip Status Field
+
+The `status` field in the trips table controls how trips are displayed:
+- **planning** - Trip is being planned (default status)
+- **active** - Trip is currently ongoing
+- **completed** - Trip has finished
+
+Organizers can update the status as the trip progresses.
+
+### Database Setup
+
+1. Go to the SQL Editor in your Supabase dashboard
+2. Run the main schema: Copy and paste the contents of `supabase/schema.sql`
+3. Run migrations (if updating existing database): Execute files in `supabase/migrations/` in order
 
 ## Features
 

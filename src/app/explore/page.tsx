@@ -1,56 +1,86 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, SlidersHorizontal } from "lucide-react";
+import { Search, Map } from "lucide-react";
 import TripCard from "../../components/trip/TripCard";
 import Footer from "../../components/Footer";
-import { mockTrips, TripType } from "../../utils/mockData";
+import { getPublicTrips, getTripMemberCount } from "../../lib/trips";
+import type { Trip } from "@/types/database";
+
+type TripWithCount = Trip & { member_count: number };
 
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState<TripType[]>([]);
-  const [sortBy, setSortBy] = useState<"recent" | "popular" | "upcoming">("recent");
-  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<"recent" | "upcoming">("recent");
+  const [trips, setTrips] = useState<TripWithCount[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const tripTypes: TripType[] = ["Adventure", "Family", "Solo", "Group", "Romantic", "Luxury"];
+  // Fetch public trips
+  useEffect(() => {
+    async function fetchTrips() {
+      setLoading(true);
+      try {
+        const { data } = await getPublicTrips();
+        
+        // Fetch member counts for all trips
+        const tripsWithCounts = await Promise.all(
+          data.map(async (trip) => {
+            const memberCount = await getTripMemberCount(trip.id);
+            return {
+              ...trip,
+              member_count: memberCount,
+            };
+          })
+        );
+        
+        setTrips(tripsWithCounts);
+      } catch (error) {
+        console.error("Error fetching trips:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTrips();
+  }, []);
 
   // Filter and sort trips
   const filteredTrips = useMemo(() => {
-    let filtered = mockTrips.filter((trip) => trip.isPublic);
+    let filtered = trips;
 
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(
         (trip) =>
-          trip.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          trip.destination.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Type filter
-    if (selectedTypes.length > 0) {
-      filtered = filtered.filter((trip) =>
-        trip.type.some((t) => selectedTypes.includes(t))
+          trip.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          trip.destination?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Sort
     if (sortBy === "recent") {
-      filtered.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+      filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     } else if (sortBy === "upcoming") {
-      filtered.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      filtered.sort((a, b) => {
+        const dateA = a.start_date ? new Date(a.start_date).getTime() : Infinity;
+        const dateB = b.start_date ? new Date(b.start_date).getTime() : Infinity;
+        return dateA - dateB;
+      });
     }
-    // popular would need a popularity metric
 
     return filtered;
-  }, [searchQuery, selectedTypes, sortBy]);
+  }, [trips, searchQuery, sortBy]);
 
-  const toggleType = (type: TripType) => {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center pt-24">
+        <div className="glass-panel p-8">
+          <div className="animate-pulse text-slate-600">Loading trips...</div>
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
     <div className="min-h-screen flex flex-col pt-24">
@@ -100,79 +130,27 @@ export default function ExplorePage() {
                   className="px-4 py-2 rounded-xl border border-white/40 bg-white/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <option value="recent">Recent</option>
-                  <option value="popular">Popular</option>
                   <option value="upcoming">Upcoming</option>
                 </select>
-
-                {/* Toggle Filters */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/40 bg-white/50 hover:bg-white/70 transition"
-                >
-                  <SlidersHorizontal className="h-5 w-5" />
-                  <span className="hidden sm:inline">Filters</span>
-                  {selectedTypes.length > 0 && (
-                    <span className="bg-sky-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {selectedTypes.length}
-                    </span>
-                  )}
-                </motion.button>
               </div>
-
-              {/* Filter Panel */}
-              {showFilters && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="mt-4 pt-4 border-t border-white/40"
-                >
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-sm font-medium text-slate-700 flex items-center gap-2 mr-2">
-                      <Filter className="h-4 w-4" />
-                      Trip Type:
-                    </span>
-                    {tripTypes.map((type) => (
-                      <motion.button
-                        key={type}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => toggleType(type)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition ${
-                          selectedTypes.includes(type)
-                            ? "bg-gradient-to-r from-sky-500 to-emerald-500 text-white"
-                            : "bg-white/60 text-slate-700 hover:bg-white/80"
-                        }`}
-                      >
-                        {type}
-                      </motion.button>
-                    ))}
-                    {selectedTypes.length > 0 && (
-                      <button
-                        onClick={() => setSelectedTypes([])}
-                        className="ml-2 text-sm text-slate-500 hover:text-slate-700 underline"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              )}
             </div>
           </motion.div>
 
           {/* Results Count */}
           <div className="mb-6 text-sm text-slate-600">
-            Showing <span className="font-semibold">{filteredTrips.length}</span> trips
+            Showing <span className="font-semibold">{filteredTrips.length}</span> {filteredTrips.length === 1 ? 'trip' : 'trips'}
           </div>
 
           {/* Trips Grid */}
           {filteredTrips.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredTrips.map((trip, index) => (
-                <TripCard key={trip.id} trip={trip} delay={index * 0.1} />
+                <TripCard 
+                  key={trip.id} 
+                  trip={trip} 
+                  memberCount={trip.member_count}
+                  delay={index * 0.1} 
+                />
               ))}
             </div>
           ) : (
@@ -181,16 +159,23 @@ export default function ExplorePage() {
               animate={{ opacity: 1 }}
               className="glass-panel p-12 text-center"
             >
-              <p className="text-slate-600 text-lg mb-4">No trips found matching your criteria</p>
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedTypes([]);
-                }}
-                className="btn-secondary"
-              >
-                Clear Filters
-              </button>
+              <Map className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-600 text-lg mb-2">
+                {searchQuery ? "No trips found matching your search" : "No public trips available yet"}
+              </p>
+              <p className="text-slate-500 text-sm mb-6">
+                {searchQuery 
+                  ? "Try adjusting your search criteria"
+                  : "Be the first to share your trip with the community!"}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="btn-secondary"
+                >
+                  Clear Search
+                </button>
+              )}
             </motion.div>
           )}
         </div>
@@ -198,5 +183,8 @@ export default function ExplorePage() {
 
       <Footer />
     </div>
+  );
+}
+
   );
 }
