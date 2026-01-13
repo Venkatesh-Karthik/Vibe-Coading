@@ -21,11 +21,17 @@ export default function ExplorePage() {
     async function fetchTrips() {
       setLoading(true);
       try {
-        const { data } = await getPublicTrips();
+        const { data: tripsData } = await getPublicTrips();
+        
+        if (!tripsData || tripsData.length === 0) {
+          setTrips([]);
+          setLoading(false);
+          return;
+        }
         
         // Fetch member counts for all trips
-        const tripsWithCounts = await Promise.all(
-          data.map(async (trip) => {
+        const tripsWithCounts: TripWithCount[] = await Promise.all(
+          tripsData.map(async (trip) => {
             const memberCount = await getTripMemberCount(trip.id);
             return {
               ...trip,
@@ -183,8 +189,5 @@ export default function ExplorePage() {
 
       <Footer />
     </div>
-  );
-}
-
   );
 }

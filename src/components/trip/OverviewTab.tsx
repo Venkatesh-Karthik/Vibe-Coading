@@ -54,7 +54,7 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
 
         setTimeRemaining({ days, hours, minutes, seconds });
       } else {
-        setTimeRemaining({ days: 0, hours, 0, minutes: 0, seconds: 0 });
+        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       }
     };
 

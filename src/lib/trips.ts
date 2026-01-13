@@ -29,7 +29,7 @@ export function getTripDuration(startDate: string | null, endDate: string | null
 /**
  * Fetch all trips for the authenticated user (as organizer or member)
  */
-export async function getUserTrips(userId: string | undefined) {
+export async function getUserTrips(userId: string | undefined): Promise<{ data: Trip[]; error: any }> {
   if (!userId) {
     return { data: [], error: null }
   }
@@ -50,7 +50,7 @@ export async function getUserTrips(userId: string | undefined) {
   const { data: memberTrips, error: memberError } = await supabase
     .from('trip_members')
     .select('trip_id')
-    .eq('user_id', userId)
+    .eq('user_id', userId) as { data: { trip_id: string | null }[] | null, error: any }
 
   if (memberError) {
     console.error('Error fetching member trips:', memberError)
@@ -58,7 +58,9 @@ export async function getUserTrips(userId: string | undefined) {
   }
 
   // Get full trip details for member trips
-  const memberTripIds = memberTrips?.map(m => m.trip_id) || []
+  const memberTripIds = (memberTrips || [])
+    .map(m => m.trip_id)
+    .filter((id): id is string => id !== null)
   
   if (memberTripIds.length === 0) {
     return { data: organizerTrips || [], error: null }
@@ -76,7 +78,7 @@ export async function getUserTrips(userId: string | undefined) {
   }
 
   // Combine and deduplicate trips
-  const allTrips = [...(organizerTrips || []), ...(memberTripDetails || [])]
+  const allTrips: Trip[] = [...(organizerTrips || []), ...(memberTripDetails || [])]
   const uniqueTrips = Array.from(
     new Map(allTrips.map(trip => [trip.id, trip])).values()
   )
@@ -104,7 +106,7 @@ export async function getUserTripsByStatus(
 /**
  * Fetch public trips for the explore page
  */
-export async function getPublicTrips() {
+export async function getPublicTrips(): Promise<{ data: Trip[]; error: any }> {
   const { data, error } = await supabase
     .from('trips')
     .select('*')
