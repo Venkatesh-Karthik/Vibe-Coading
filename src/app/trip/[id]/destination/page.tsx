@@ -41,12 +41,13 @@ export default function DestinationPage() {
           console.error("Error fetching trip:", error);
           setTrip(null);
         } else {
-          setTrip(data);
+          const tripData: Trip = data;
+          setTrip(tripData);
 
           // Fetch weather data if destination exists
-          if (data.destination) {
+          if (tripData.destination) {
             setWeatherLoading(true);
-            const weatherData = await getWeatherByCity(data.destination);
+            const weatherData = await getWeatherByCity(tripData.destination);
             setWeather(weatherData);
             setWeatherLoading(false);
           }
