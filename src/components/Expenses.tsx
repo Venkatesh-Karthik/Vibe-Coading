@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { useSupabaseAuth } from "../lib/auth";
+import { useAuth } from "../lib/auth-context";
 import { calculateBalances, calculateSettlement, calculateCategoryTotals } from "../lib/helpers/expenses";
 import type { Expense, ExpenseSplit, User } from "@/types/database";
 
@@ -13,7 +13,7 @@ type ExpenseWithSplits = Expense & {
 };
 
 export default function Expenses({ tripId }: { tripId: string }) {
-  const { user } = useSupabaseAuth();
+  const { user } = useAuth();
 
   // Participants (to know who can be included in splits)
   const [members, setMembers] = useState<Participant[]>([]);
