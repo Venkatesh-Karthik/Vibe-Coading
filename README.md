@@ -116,31 +116,39 @@ TripMosaic+ /
  │   ├─ app/
  │   │   ├─ layout.tsx       # Root layout with providers
  │   │   ├─ globals.css      # Global styles
- │   │   ├─ page.tsx         # Home page
+ │   │   ├─ page.tsx         # Home page (uses demo data for showcase)
  │   │   ├─ auth/callback/   # OAuth callback handler
- │   │   ├─ explore/         # Explore destinations
+ │   │   ├─ explore/         # Explore destinations (real Supabase data)
  │   │   ├─ planner/         # Dynamic trip planner
  │   │   ├─ memories/        # Memory wall
  │   │   ├─ join/            # Join trip with code
- │   │   ├─ organizer/       # Trip organizer pages
- │   │   └─ trip/            # Trip detail pages
+ │   │   ├─ organizer/       # Trip organizer pages (real Supabase data)
+ │   │   └─ trip/            # Trip detail pages (real Supabase data)
  │   ├─ components/
  │   │   ├─ Navbar.tsx       # Glassmorphism navbar
+ │   │   ├─ trip/
+ │   │   │   ├─ TripCard.tsx # Trip card component (uses real data)
+ │   │   │   └─ ...          # Other trip components
  │   │   ├─ DestinationCard.tsx
  │   │   ├─ FeatureCard.tsx
  │   │   ├─ Footer.tsx
  │   │   └─ Expenses.tsx     # Expense splitting
  │   ├─ lib/
  │   │   ├─ supabase.ts      # Supabase client
+ │   │   ├─ trips.ts         # Trip data service layer
  │   │   ├─ auth.tsx         # Auth context
  │   │   ├─ helpers/
  │   │   │   ├─ expenses.ts  # Expense calculations
  │   │   │   └─ storage.ts   # File upload helpers
  │   │   └─ ClientProviders.tsx
- │   └─ types/
- │       └─ database.ts      # TypeScript types
+ │   ├─ types/
+ │   │   └─ database.ts      # TypeScript types for Supabase
+ │   └─ utils/
+ │       ├─ mockData.ts      # Mock data (only used on home page for demo)
+ │       └─ tripHelpers.ts   # Trip utility functions
  ├─ supabase/
- │   └─ schema.sql           # Database schema with RLS
+ │   ├─ schema.sql           # Database schema with RLS
+ │   └─ migrations/          # Database migrations
  ├─ .env.local               # Environment variables (create this)
  ├─ .env.example             # Example environment variables
  ├─ tailwind.config.js
@@ -148,6 +156,20 @@ TripMosaic+ /
  ├─ package.json
  └─ README.md
 ```
+
+## Data Sources
+
+The application uses a combination of real Supabase data and demonstration data:
+
+### Real Supabase Data
+- **Organizer Dashboard** (`/organizer`) - Fetches user's trips and displays real statistics
+- **Explore Page** (`/explore`) - Shows public trips from Supabase database
+- **Trip Detail Pages** (`/trip/[id]`) - Loads complete trip information from database
+- **Trip Cards** - Display real trip data with status, dates, and member counts
+
+### Demo Data
+- **Home Page** (`/`) - Uses mock data for demonstration purposes to showcase the UI without requiring authentication
+- The mock data is only for visual presentation and does not affect the actual application functionality
 
 ## Database Schema
 
