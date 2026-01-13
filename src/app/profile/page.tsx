@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Camera, MapPin, Calendar, TrendingUp, Edit } from "lucide-react";
-import TripCard from "../../components/trip/TripCard";
 import Footer from "../../components/Footer";
-import { mockTrips } from "../../utils/mockData";
 import { useAuth } from "../../lib/auth-context";
 
 type TabType = "joined" | "created" | "wishlist";
@@ -223,12 +221,25 @@ export default function ProfilePage() {
             </motion.button>
           </motion.div>
 
-          {/* Trips Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {mockTrips.slice(0, 6).map((trip, index) => (
-              <TripCard key={trip.id} trip={trip} delay={0.6 + index * 0.1} />
-            ))}
-          </div>
+          {/* Placeholder for trips - Profile trip management is under development */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            className="glass-panel p-12 text-center"
+          >
+            <MapPin className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+              Trip Management Coming Soon
+            </h3>
+            <p className="text-slate-600 mb-6">
+              View and manage your trips from the{" "}
+              <a href="/organizer" className="text-sky-600 hover:text-sky-700 font-medium">
+                Organizer Dashboard
+              </a>
+              .
+            </p>
+          </motion.div>
         </div>
       </main>
 
