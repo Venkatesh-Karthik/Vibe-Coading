@@ -1,37 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Plus, Calendar, Users, DollarSign, Map } from "lucide-react";
 import TripCard from "../../components/trip/TripCard";
 import Footer from "../../components/Footer";
-import { mockTrips, getTripsByStatus } from "../../utils/mockData";
 import { useAuth } from "../../lib/auth-context";
+import { getUserTripsWithMemberCounts, getTripStats } from "../../lib/trips";
+import type { TripWithMemberCount } from "../../lib/trips";
 
 type FilterStatus = "all" | "planning" | "active" | "completed";
 
 export default function OrganizerPage() {
-  const { user, loading, loginWithGoogle } = useAuth();
+  const { user, loading: authLoading, loginWithGoogle } = useAuth();
   const [filter, setFilter] = useState<FilterStatus>("all");
+  const [trips, setTrips] = useState<TripWithMemberCount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalTrips: 0,
+    planningTrips: 0,
+    activeTrips: 0,
+    completedTrips: 0,
+    totalBudget: 0,
+  });
 
-  // In real app, filter by user's created trips
-  const allTrips = mockTrips;
-  
+  // Fetch trips and stats when user is loaded
+  useEffect(() => {
+    async function fetchData() {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Fetch trips with member counts
+        const tripsData = await getUserTripsWithMemberCounts(user.id);
+        setTrips(tripsData);
+
+        // Fetch stats
+        const statsData = await getTripStats(user.id);
+        setStats(statsData);
+      } catch (error) {
+        console.error("Error fetching trips:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [user?.id]);
+
+  // Filter trips based on selected status
   const filteredTrips = filter === "all" 
-    ? allTrips 
-    : getTripsByStatus(filter);
+    ? trips 
+    : trips.filter(trip => trip.status === filter);
 
-  const stats = {
-    totalTrips: allTrips.length,
-    totalTravelers: allTrips.reduce((sum, t) => sum + t.travelers, 0),
-    totalSpend: allTrips.reduce((sum, t) => sum + t.budget, 0),
-    planningTrips: getTripsByStatus("planning").length,
-    activeTrips: getTripsByStatus("active").length,
-    completedTrips: getTripsByStatus("completed").length,
-  };
-
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-24">
         <div className="glass-panel p-8">
@@ -127,7 +153,7 @@ export default function OrganizerPage() {
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900 mb-1">
-                {stats.totalTravelers}
+                {trips.reduce((sum, t) => sum + t.member_count, 0)}
               </div>
               <div className="text-sm text-slate-600">Total Travelers</div>
             </motion.div>
@@ -144,7 +170,7 @@ export default function OrganizerPage() {
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900 mb-1">
-                ₹{(stats.totalSpend / 1000).toFixed(0)}k
+                {stats.totalBudget > 0 ? `₹${(stats.totalBudget / 1000).toFixed(0)}k` : '₹0'}
               </div>
               <div className="text-sm text-slate-600">Total Budget</div>
             </motion.div>
@@ -202,7 +228,12 @@ export default function OrganizerPage() {
           {filteredTrips.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredTrips.map((trip, index) => (
-                <TripCard key={trip.id} trip={trip} delay={0.6 + index * 0.1} />
+                <TripCard 
+                  key={trip.id} 
+                  trip={trip} 
+                  memberCount={trip.member_count}
+                  delay={0.6 + index * 0.1} 
+                />
               ))}
             </div>
           ) : (
@@ -211,7 +242,19 @@ export default function OrganizerPage() {
               animate={{ opacity: 1 }}
               className="glass-panel p-12 text-center"
             >
-              <p className="text-slate-600 text-lg mb-4">No trips found</p>
+              <div className="mb-4">
+                <Map className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 text-lg mb-2">
+                  {filter === "all" 
+                    ? "No trips yet" 
+                    : `No ${filter} trips`}
+                </p>
+                <p className="text-slate-500 text-sm mb-6">
+                  {filter === "all"
+                    ? "Start planning your first adventure!"
+                    : `You don't have any ${filter} trips at the moment.`}
+                </p>
+              </div>
               <Link href="/organizer/new">
                 <motion.button
                   whileHover={{ scale: 1.05 }}

@@ -39,6 +39,11 @@ export interface Database {
           destination: string | null
           start_date: string | null
           end_date: string | null
+          status: 'planning' | 'active' | 'completed' | null
+          description: string | null
+          is_public: boolean | null
+          budget: number | null
+          cover_image: string | null
           organizer_id: string | null
           join_code: string | null
           created_at: string
@@ -49,6 +54,11 @@ export interface Database {
           destination?: string | null
           start_date?: string | null
           end_date?: string | null
+          status?: 'planning' | 'active' | 'completed' | null
+          description?: string | null
+          is_public?: boolean | null
+          budget?: number | null
+          cover_image?: string | null
           organizer_id?: string | null
           join_code?: string | null
           created_at?: string
@@ -59,6 +69,11 @@ export interface Database {
           destination?: string | null
           start_date?: string | null
           end_date?: string | null
+          status?: 'planning' | 'active' | 'completed' | null
+          description?: string | null
+          is_public?: boolean | null
+          budget?: number | null
+          cover_image?: string | null
           organizer_id?: string | null
           join_code?: string | null
           created_at?: string
