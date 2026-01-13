@@ -97,6 +97,12 @@ NEXT_PUBLIC_OPENWEATHER_API_KEY=your_openweather_api_key_here
 4. Generate a new API key
 5. Copy the key to your `.env.local` file
 
+**Security Note:** 
+- This API key is exposed client-side (required for browser-based weather fetching)
+- Restrict your API key by HTTP referrer in OpenWeather dashboard
+- Set domain restrictions (e.g., `yourdomain.com/*`)
+- Use the free tier which has rate limiting built-in
+
 **Note:** If not configured, the destination page will show a professional empty state for weather information, and the feature will gracefully degrade.
 
 #### Google Maps API Key (OPTIONAL)
@@ -111,6 +117,13 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 3. Enable the Maps Embed API
 4. Go to Credentials and create an API key
 5. Copy the key to your `.env.local` file
+
+**Security Note:**
+- This API key is exposed client-side (required for embedded maps)
+- Restrict your API key in Google Cloud Console:
+  - Set application restrictions (HTTP referrers)
+  - Add your domain (e.g., `yourdomain.com/*`)
+  - Restrict to specific APIs (Maps Embed API only)
 
 **Note:** If not configured, the destination page will show a message about configuring the API key, but other features will work normally.
 

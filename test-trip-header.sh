@@ -43,7 +43,7 @@ echo ""
 
 # Test 3: Check TypeScript compilation
 echo "✅ Test 3: Running TypeScript type check..."
-if npm run type-check 2>&1 | grep -q "Found 0 errors"; then
+if npm run type-check > /dev/null 2>&1; then
   echo "  ✓ No TypeScript errors"
 else
   echo "  ⚠️  Some TypeScript errors exist (check other files)"

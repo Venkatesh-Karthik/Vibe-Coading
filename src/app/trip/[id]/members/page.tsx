@@ -54,7 +54,8 @@ export default function MembersPage() {
           console.error("Error fetching members:", membersError);
           setMembers([]);
         } else {
-          setMembers((membersData as any) || []);
+          // Type cast is safe here because we're selecting with a join
+          setMembers((membersData || []) as MemberWithUser[]);
         }
       } catch (err) {
         console.error("Error loading data:", err);
