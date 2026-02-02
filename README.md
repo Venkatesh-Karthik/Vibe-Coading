@@ -16,6 +16,8 @@ A beautiful, glassmorphism-styled group trip planner with Supabase backend for r
 - 📱 **Fully Responsive** - Works beautifully on mobile and desktop
 - ⚡ **Smooth Animations** - Powered by Framer Motion
 - 🔄 **Real-time Updates** - Live collaboration with Supabase Realtime
+- ⏱️ **Live Countdown Timer** - Real-time countdown to trip start/end with seconds precision
+- 🎯 **Next Planned Activity** - Smart widget showing your upcoming activity with live updates
 
 ### New: Interactive Trip Dashboard Header
 
@@ -27,6 +29,33 @@ The trip dashboard header now features fully interactive elements:
 - **Share Button**: Opens modal for easy trip code and link sharing
 
 See [TRIP_HEADER_UPGRADE.md](./TRIP_HEADER_UPGRADE.md) for detailed documentation.
+
+### New: Live Countdown Timer & Next Planned Activity
+
+The trip overview dashboard now includes two intelligent widgets that connect to live Supabase data:
+
+#### Live Countdown Timer
+- **Real-time Updates**: Counts down to trip start (for planning trips) or trip end (for active trips) with live seconds precision
+- **Graceful Handling**: Automatically handles missing, invalid, or past dates with appropriate messaging
+- **Smart Display**: Shows "Time until departure" for planning trips, "Time remaining" for active trips, and celebration message for completed trips
+- **Edge Cases**: Works correctly even when dates are null or invalid
+
+#### Next Planned Activity Widget
+- **Smart Detection**: Automatically identifies the next upcoming activity from your trip itinerary
+- **Live Data**: Fetches activities directly from Supabase `activities` and `itinerary_days` tables
+- **Rich Display**: Shows activity title, location, time, cost, and day number
+- **Auto-refresh**: Updates every minute to keep the "next" activity accurate
+- **Professional Empty State**: Clean UI when no upcoming activities are scheduled
+- **Real-time Activity Count**: The quick stats now show the actual number of activities loaded from the database
+
+These features integrate seamlessly with the existing trip planner and provide at-a-glance information about your upcoming adventures.
+
+**Technical Implementation:**
+- `src/lib/activities.ts` - Service layer for fetching and filtering activities
+- `src/hooks/useCountdown.ts` - Reusable countdown hook with edge case handling
+- `src/hooks/useNextPlannedActivity.ts` - Hook for fetching next activity with auto-refresh
+- `src/components/trip/NextActivityWidget.tsx` - Next activity display component
+- Updated `src/components/trip/OverviewTab.tsx` - Integrated both features into the overview
 
 ## Tech Stack
 
@@ -153,16 +182,22 @@ TripMosaic+ /
  │   │   ├─ trip/
  │   │   │   ├─ TripCard.tsx       # Trip card component (uses real data)
  │   │   │   ├─ TripHeader.tsx     # Interactive trip header (updated)
- │   │   │   ├─ ShareTripModal.tsx # NEW: Trip sharing modal
+ │   │   │   ├─ ShareTripModal.tsx # Trip sharing modal
+ │   │   │   ├─ NextActivityWidget.tsx # NEW: Next planned activity widget
+ │   │   │   ├─ OverviewTab.tsx    # UPDATED: Countdown & activity integration
  │   │   │   └─ ...                # Other trip components
  │   │   ├─ DestinationCard.tsx
  │   │   ├─ FeatureCard.tsx
  │   │   ├─ Footer.tsx
  │   │   └─ Expenses.tsx     # Expense splitting
+ │   ├─ hooks/               # NEW: Custom React hooks
+ │   │   ├─ useCountdown.ts       # Live countdown timer hook
+ │   │   └─ useNextPlannedActivity.ts # Next activity fetching hook
  │   ├─ lib/
  │   │   ├─ supabase.ts      # Supabase client
  │   │   ├─ trips.ts         # Trip data service layer
- │   │   ├─ weather.ts       # NEW: Weather API service with caching
+ │   │   ├─ activities.ts    # NEW: Activity data service layer
+ │   │   ├─ weather.ts       # Weather API service with caching
  │   │   ├─ auth.tsx         # Auth context
  │   │   ├─ helpers/
  │   │   │   ├─ expenses.ts  # Expense calculations
@@ -219,8 +254,15 @@ The application uses the following Supabase tables:
   - `organizer_id` (uuid) - Reference to the user who created the trip
   - `join_code` (text) - Unique code for others to join the trip
 - **trip_members** - Trip memberships
-- **itinerary_days** - Daily itinerary entries
-- **activities** - Activities within itinerary days
+- **itinerary_days** - Daily itinerary entries with `day_number` for each trip
+- **activities** - Activities within itinerary days with:
+  - `title` (text) - Activity name
+  - `location` (text) - Where the activity takes place
+  - `time` (text) - Time of activity (e.g., "09:00" or "9:00 AM")
+  - `notes` (text) - Additional details
+  - `cost` (numeric) - Activity cost
+  - `day_id` (uuid) - Reference to the itinerary day
+  - `lat`, `lng` (numeric) - Optional coordinates
 - **expenses** - Trip expenses
 - **expense_splits** - How expenses are split
 - **memories** - Photos and videos
