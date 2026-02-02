@@ -19,7 +19,7 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState(false);
-  const [activityCount, setActivityCount] = useState<number>(0);
+  const [activityCount, setActivityCount] = useState<number | null>(null);
 
   const status = trip.status || 'planning';
 
@@ -238,7 +238,9 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
           <div className="text-sm text-slate-600">Budget</div>
         </div>
         <div className="glass-panel p-4 text-center">
-          <div className="text-2xl font-bold gradient-text">{activityCount > 0 ? activityCount : '-'}</div>
+          <div className="text-2xl font-bold gradient-text">
+            {activityCount !== null ? activityCount : '-'}
+          </div>
           <div className="text-sm text-slate-600">Activities</div>
         </div>
       </motion.div>
