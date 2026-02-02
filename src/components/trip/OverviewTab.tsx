@@ -6,6 +6,9 @@ import { Calendar, Clock, CloudRain, Sun, Thermometer, Loader2, Cloud } from "lu
 import type { Trip } from "@/types/database";
 import { getTripDuration } from "@/lib/trips";
 import { getWeatherByCity, getWeatherIconUrl, type WeatherData } from "@/lib/weather";
+import { useCountdown } from "@/hooks/useCountdown";
+import { getTripActivityCount } from "@/lib/activities";
+import NextActivityWidget from "./NextActivityWidget";
 
 interface OverviewTabProps {
   trip: Trip;
@@ -13,17 +16,22 @@ interface OverviewTabProps {
 }
 
 export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps) {
-  const [timeRemaining, setTimeRemaining] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState(false);
+  const [activityCount, setActivityCount] = useState<number>(0);
 
   const status = trip.status || 'planning';
+
+  // Determine countdown target based on trip status
+  const countdownTarget = status === 'planning' 
+    ? trip.start_date 
+    : status === 'active' 
+      ? trip.end_date 
+      : null;
+
+  // Use the countdown hook
+  const timeRemaining = useCountdown(countdownTarget);
 
   // Fetch weather data for destination
   useEffect(() => {
@@ -56,48 +64,15 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
     return () => clearInterval(refreshInterval);
   }, [trip.destination]);
 
-  // Calculate time remaining or time since
+  // Fetch activity count
   useEffect(() => {
-    if (!trip.start_date || !trip.end_date) {
-      setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      return;
+    async function fetchActivityCount() {
+      const count = await getTripActivityCount(trip.id);
+      setActivityCount(count);
     }
 
-    const calculateTime = () => {
-      const now = new Date();
-      const startDate = new Date(trip.start_date!);
-      const endDate = new Date(trip.end_date!);
-
-      let targetDate: Date;
-      if (status === "planning") {
-        targetDate = startDate;
-      } else if (status === "active") {
-        targetDate = endDate;
-      } else {
-        // Completed - show 0
-        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-
-      const diff = targetDate.getTime() - now.getTime();
-
-      if (diff > 0) {
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        setTimeRemaining({ days, hours, minutes, seconds });
-      } else {
-        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    };
-
-    calculateTime();
-    const interval = setInterval(calculateTime, 1000);
-
-    return () => clearInterval(interval);
-  }, [trip.start_date, trip.end_date, status]);
+    fetchActivityCount();
+  }, [trip.id]);
 
   const getCountdownLabel = () => {
     if (status === "planning") return "Time until departure";
@@ -141,6 +116,13 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
                 <div className="text-4xl mb-2">🎉</div>
                 <p className="text-slate-600">
                   This trip was completed on {new Date(trip.end_date).toLocaleDateString()}
+                </p>
+              </div>
+            ) : timeRemaining.isComplete ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-2">⏰</div>
+                <p className="text-slate-600">
+                  {status === "planning" ? "Trip starting soon!" : "No countdown available"}
                 </p>
               </div>
             ) : (
@@ -227,6 +209,9 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
             )}
           </motion.div>
         )}
+
+        {/* Next Planned Activity Widget */}
+        <NextActivityWidget trip={trip} />
       </div>
 
       {/* Quick Stats */}
@@ -253,7 +238,7 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
           <div className="text-sm text-slate-600">Budget</div>
         </div>
         <div className="glass-panel p-4 text-center">
-          <div className="text-2xl font-bold gradient-text">-</div>
+          <div className="text-2xl font-bold gradient-text">{activityCount > 0 ? activityCount : '-'}</div>
           <div className="text-sm text-slate-600">Activities</div>
         </div>
       </motion.div>
