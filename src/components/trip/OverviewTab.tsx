@@ -39,7 +39,6 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
       try {
         const weatherData = await getWeatherByCity(trip.destination);
         setWeather(weatherData);
-        setWeatherError(weatherData === null);
       } catch (error) {
         console.error("Error fetching weather:", error);
         setWeather(null);

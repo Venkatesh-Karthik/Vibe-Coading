@@ -68,10 +68,15 @@ export default function DestinationPage() {
     if (!trip?.destination) return;
 
     const refreshWeather = async () => {
-      setWeatherLoading(true);
-      const weatherData = await getWeatherByCity(trip.destination!);
-      setWeather(weatherData);
-      setWeatherLoading(false);
+      try {
+        setWeatherLoading(true);
+        const weatherData = await getWeatherByCity(trip.destination!);
+        setWeather(weatherData);
+      } catch (error) {
+        console.error("Error refreshing weather:", error);
+      } finally {
+        setWeatherLoading(false);
+      }
     };
 
     const refreshInterval = setInterval(refreshWeather, 10 * 60 * 1000);
