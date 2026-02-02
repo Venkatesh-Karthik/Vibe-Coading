@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, CloudRain, Sun, Thermometer } from "lucide-react";
+import { Calendar, Clock, CloudRain, Sun, Thermometer, Loader2, Cloud } from "lucide-react";
 import type { Trip } from "@/types/database";
 import { getTripDuration } from "@/lib/trips";
+import { getWeatherByCity, getWeatherIconUrl, type WeatherData } from "@/lib/weather";
 
 interface OverviewTabProps {
   trip: Trip;
@@ -18,8 +19,43 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
     minutes: 0,
     seconds: 0,
   });
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState(false);
 
   const status = trip.status || 'planning';
+
+  // Fetch weather data for destination
+  useEffect(() => {
+    async function fetchWeather() {
+      if (!trip.destination) {
+        setWeather(null);
+        return;
+      }
+
+      setWeatherLoading(true);
+      setWeatherError(false);
+      
+      try {
+        const weatherData = await getWeatherByCity(trip.destination);
+        setWeather(weatherData);
+        setWeatherError(weatherData === null);
+      } catch (error) {
+        console.error("Error fetching weather:", error);
+        setWeather(null);
+        setWeatherError(true);
+      } finally {
+        setWeatherLoading(false);
+      }
+    }
+
+    fetchWeather();
+    
+    // Refresh weather data every 10 minutes
+    const refreshInterval = setInterval(fetchWeather, 10 * 60 * 1000);
+
+    return () => clearInterval(refreshInterval);
+  }, [trip.destination]);
 
   // Calculate time remaining or time since
   useEffect(() => {
@@ -63,14 +99,6 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
 
     return () => clearInterval(interval);
   }, [trip.start_date, trip.end_date, status]);
-
-  // Mock weather data (can be replaced with real API later)
-  const mockWeather = {
-    temp: 28,
-    condition: "Sunny",
-    high: 32,
-    low: 24,
-  };
 
   const getCountdownLabel = () => {
     if (status === "planning") return "Time until departure";
@@ -151,27 +179,53 @@ export default function OverviewTab({ trip, memberCount = 1 }: OverviewTabProps)
               Weather at Destination
             </h2>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Sun className="h-12 w-12 text-amber-500" />
-                  <div className="text-5xl font-bold text-slate-900">{mockWeather.temp}°</div>
-                </div>
-                <div className="text-lg text-slate-700 font-medium mb-1">{mockWeather.condition}</div>
-                <div className="text-sm text-slate-500">{trip.destination}</div>
+            {weatherLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
               </div>
+            ) : weather ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {weather.icon ? (
+                      <img 
+                        src={getWeatherIconUrl(weather.icon)} 
+                        alt={weather.condition}
+                        className="h-12 w-12"
+                      />
+                    ) : (
+                      <Sun className="h-12 w-12 text-amber-500" />
+                    )}
+                    <div className="text-5xl font-bold text-slate-900">{weather.temp}°</div>
+                  </div>
+                  <div className="text-lg text-slate-700 font-medium mb-1 capitalize">
+                    {weather.condition}
+                  </div>
+                  <div className="text-sm text-slate-500">{weather.cityName || trip.destination}</div>
+                </div>
 
-              <div className="text-right">
-                <div className="flex items-center gap-2 mb-2">
-                  <Thermometer className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-slate-600">High: {mockWeather.high}°C</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Thermometer className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm text-slate-600">Low: {mockWeather.low}°C</span>
+                <div className="text-right">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Thermometer className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-slate-600">High: {weather.high}°C</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Thermometer className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm text-slate-600">Low: {weather.low}°C</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-8">
+                <Cloud className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                <p className="text-slate-600 text-sm mb-1">
+                  {weatherError ? "Unable to load weather data" : "Weather information unavailable"}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {!weatherError && "Configure OpenWeather API key to enable weather features"}
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
       </div>
