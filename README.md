@@ -64,7 +64,11 @@ See [TRIP_HEADER_UPGRADE.md](./TRIP_HEADER_UPGRADE.md) for detailed documentatio
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-   # OpenWeather API Key (OPTIONAL - for weather features)
+   # OpenWeather API Key (OPTIONAL - for real-time weather features)
+   # Get a free API key at: https://openweathermap.org/api
+   # Features enabled: Real-time weather display on trip overview and destination pages
+   # Weather data includes: temperature, conditions, high/low, humidity, wind speed
+   # Data is cached for 10 minutes to minimize API calls
    NEXT_PUBLIC_OPENWEATHER_API_KEY=your_openweather_api_key
 
    # Google Maps API Key (OPTIONAL - for maps)
