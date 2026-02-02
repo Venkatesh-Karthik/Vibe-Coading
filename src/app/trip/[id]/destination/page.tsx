@@ -63,6 +63,21 @@ export default function DestinationPage() {
     fetchData();
   }, [tripId]);
 
+  // Auto-refresh weather data every 10 minutes
+  useEffect(() => {
+    if (!trip?.destination) return;
+
+    const refreshWeather = async () => {
+      setWeatherLoading(true);
+      const weatherData = await getWeatherByCity(trip.destination!);
+      setWeather(weatherData);
+      setWeatherLoading(false);
+    };
+
+    const refreshInterval = setInterval(refreshWeather, 10 * 60 * 1000);
+    return () => clearInterval(refreshInterval);
+  }, [trip?.destination]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-24">
