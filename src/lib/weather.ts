@@ -2,7 +2,7 @@
  * Weather Service
  * 
  * This module provides functions to fetch real-time weather data using OpenWeather API.
- * Includes in-memory caching to minimize API calls.
+ * Includes in-memory caching to minimize API calls (10 minute cache).
  */
 
 export interface WeatherData {
@@ -19,7 +19,7 @@ export interface WeatherData {
 
 // In-memory cache for weather data
 const weatherCache = new Map<string, { data: WeatherData; timestamp: number }>();
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 /**
  * Fetch weather data for a city from OpenWeather API
