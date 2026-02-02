@@ -26,7 +26,7 @@ export function useCountdown(targetDate: string | Date | null | undefined): Coun
     hours: 0,
     minutes: 0,
     seconds: 0,
-    isComplete: true,
+    isComplete: false,
   })
 
   useEffect(() => {
